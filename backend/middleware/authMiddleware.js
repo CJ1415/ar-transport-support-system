@@ -3,19 +3,25 @@ const JWT_SECRET = process.env.JWT_SECRET
 
 
 module.exports = (req, res, next) => {
-    const token = req.header('Authorization');
+    // try to get the header ragardless of caps
+    const rawHeader = req.headers['authorization'] || req.headers['Authorization'] || req.header('Authorization');
 
-    if (!token) {
-        return res.status(401).json({message: "Access Denied: No Token Provided."});
+    if (!rawHeader) {
+        return res.status(401).json({message: "Access Denied: No Header Found"});
     }
+
+    // remove the 'Bearer' from the token so only the token is parsed (this was such a headache of a bug)
+    const token = rawHeader.startsWith('Bearer ') 
+        ? rawHeader.slice(7) 
+        : rawHeader;
 
     try {
-        const verified = jwt.verify(token, JWT_SECRET);
+        // verify the token and JWT_SECRET to ensure valid access
+        const verified = jwt.verify(token, JWT_SECRET); 
         req.user = verified;
         next();
-
     } catch (err) {
-        res.status(400).json({message: "Invalid Token"});
+        console.log("JWT Verify Error:", err.message);
+        res.status(400).json({message: "Invalid Token", error: err.message});
     }
 };
-
