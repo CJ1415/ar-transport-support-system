@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-import FaultList from './components/FaultList'
+import LoggedOutView from "./views/LoggedOutView";
+import LoggedInView from "./views/LoggedInView";
 
 function App() {
 
@@ -11,7 +12,6 @@ function App() {
     // check if we have a token in storage already
     const saved = localStorage.getItem("token")
     return (saved && saved !== "undefined" && saved !== "null") ? saved : null;});
-  const [loggedIn, isLoggedIn] = useState(false);
   const [faults, setFaults] = useState([])
   const [attempts, setLoginAttempts] = useState(0)
   const [theme, setTheme] = useState("dark")
@@ -87,48 +87,28 @@ function App() {
 return (
   <div className={`dashboard-container ${theme}`}>
     <h1>AR Fault System</h1>
-    
+
     <button className='theme-btn' onClick={toggleTheme}>
       Switch Theme
     </button>
 
-    <hr style={{ width: '100%', maxWidth: '600px', opacity: '0.2' }} />
-
     {!token ? (
-      // logged out view, this is known as login-form for reference in other files such as css
-      <div className="login-form">
-        <input
-          type="text"
-          placeholder="Username"
-          value={username}
-          onChange={handleUsernameInput}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={handlePasswordInput}
-        />
-        {attempts > 0 && (
-          <p style={{ color: 'red', fontWeight: 'bold' }}>
-            Login failed. Attempt: {attempts}
-          </p>
-        )}
-        <button className='login' onClick={loggingIn}>
-          Log In
-        </button>
-      </div>
+      <LoggedOutView
+        username={username}
+        password={password}
+        attempts={attempts}
+        handleUsernameInput={handleUsernameInput}
+        handlePasswordInput={handlePasswordInput}
+        loggingIn={loggingIn}
+      />
     ) : (
-      // logged in view, this is known as 'fault-list' for reference in other files such as css 
-      <div className="fault-list">
-        <h2>Active Transport Faults</h2>
-
-        <FaultList faults={faults} />
-
-        <button className="logout" onClick={() => { localStorage.clear(); setToken(null); }}>
-          Log Out
-        </button>
-      </div>
+      <LoggedInView
+        faults={faults}
+        logout={() => {
+          localStorage.clear();
+          setToken(null);
+        }}
+      />
     )}
   </div>
 );
