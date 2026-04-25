@@ -1,0 +1,115 @@
+/* App.css */
+:root {
+  --primary-blue: #007bff;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  /* defaults to black so it doesn't flash white on load */
+  background-color: var(--bg-color, black);
+  transition: background-color 0.3s ease;
+}
+
+/* colors for dark and light modes */
+.dashboard-container.light { 
+  --bg-color: #ffffff; 
+  --text-main: #1a1a1a;
+  --comp-bg: #f0f0f0; 
+  --input-border: #cccccc;
+}
+
+.dashboard-container.dark { 
+  --bg-color: #000000; 
+  --text-main: #f4f4f4;
+  --comp-bg: #1a1a1a; 
+  --input-border: #444444;
+}
+
+/* main page wrapper */
+.dashboard-container {
+  min-height: 100vh;
+  width: 100%;
+  padding: 40px 20px;
+  box-sizing: border-box;
+  text-align: center;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* text stuff */
+.dashboard-container h1,
+.dashboard-container h2 {
+  color: var(--text-main);
+}
+
+h1 { margin-bottom: 5px; color: var(--primary-blue); }
+p.subtitle { margin-top: 0; opacity: 0.7; font-style: italic; }
+
+.dashboard-container h2 {
+  margin-top: 30px;
+  font-size: 1.5rem;
+  border-bottom: 2px solid var(--primary-blue);
+  display: inline-block;
+  padding-bottom: 5px;
+}
+
+/* login form layout */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px; /* space between inputs */
+  width: 100%;
+  max-width: 350px;
+  margin: 0 auto; /* keep it centered */
+}
+
+/* input styling */
+input {
+  background-color: var(--comp-bg);
+  color: var(--text-main);
+  border: 1px solid var(--input-border);
+  padding: 12px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* buttons */
+button {
+  padding: 12px 24px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  transition: transform 0.1s, opacity 0.2s;
+  font-family: inherit;
+}
+
+button:active { transform: scale(0.98); }
+
+.login { background: var(--primary-blue); color: white; margin-top: 10px; }
+.logout { background: #444; color: white; margin-top: 20px; }
+.theme-btn { margin-bottom: 20px; background: #666; color: white; }
+
+/* fault list layout */
+ul {
+  list-style: none;
+  padding: 0;
+  max-width: 600px; 
+  margin: 30px auto 0 auto; 
+  text-align: left;
+}
+
+.fault-item {
+  background-color: var(--comp-bg);
+  padding: 15px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+}
+
+.location-name { display: block; font-size: 1.1rem; font-weight: bold; }

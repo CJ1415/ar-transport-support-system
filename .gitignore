@@ -1,0 +1,13 @@
+# Dependencies
+node_modules/
+
+# Environment Secrets (CRITICAL)
+.env
+
+# OS Metadata
+.DS_Store
+Thumbs.db
+
+# Build folders
+dist/
+build/
