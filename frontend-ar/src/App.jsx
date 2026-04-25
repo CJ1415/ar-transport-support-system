@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import './App.css'
+import FaultList from './components/FaultList'
 
 function App() {
 
@@ -82,15 +83,6 @@ function App() {
     setTheme(prevTheme => (prevTheme === "light" ? "dark" : "light"));
   };
 
-  // values for the color coding of fault severity
-  const severityColors = {
-  "Very High": "#ff0000",
-  "High": "#ff6600",
-  "Medium": "#ffcc00",
-  "Low": "#00ff00",
-  "None": "#ffffff"       
-};
-
 // jsx return block
 return (
   <div className={`dashboard-container ${theme}`}>
@@ -130,22 +122,9 @@ return (
       // logged in view, this is known as 'fault-list' for reference in other files such as css 
       <div className="fault-list">
         <h2>Active Transport Faults</h2>
-        <ul>
-          {faults.length > 0 ? (
-            faults.map((fault) => (
-              <li key={fault.id} className="fault-item">
-                <strong className="location-name">{fault.location}</strong>
-                <span>Type: {fault.type}</span> | 
-                <span style={{ 
-                  color: severityColors[fault.severity] || "white",
-                  fontWeight: 'bold' 
-                }}> Severity: {fault.severity}</span>
-              </li>
-            ))
-          ) : (
-            <p>No faults found in the system</p>
-          )}
-        </ul>
+
+        <FaultList faults={faults} />
+
         <button className="logout" onClick={() => { localStorage.clear(); setToken(null); }}>
           Log Out
         </button>
