@@ -132,3 +132,71 @@ ul {
 .view-button:hover {
   opacity: 0.85;
 }
+
+.fault-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 600px;
+  margin: 20px auto 0 auto;
+}
+
+.report-fault {
+  background: var(--primary-blue);
+  color: white;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-box {
+  background: var(--comp-bg);
+  padding: 20px;
+  border-radius: 10px;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal-box input,
+.modal-box select {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid var(--input-border);
+  background: var(--comp-bg);
+  color: var(--text-main);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+}
+
+.modal-actions button {
+  padding: 10px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.modal-actions button:last-child {
+  background: var(--primary-blue);
+  color: white;
+}
+
+.modal-actions button:first-child {
+  background: #444;
+  color: white;
+}
