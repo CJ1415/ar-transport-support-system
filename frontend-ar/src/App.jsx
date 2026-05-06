@@ -10,7 +10,7 @@ function App() {
   const [color, setColor] = useState();
   const [token, setToken] = useState(() => {
     // check if we have a token in storage already
-    const saved = localStorage.getItem("token")
+  const saved = localStorage.getItem("token")
     return (saved && saved !== "undefined" && saved !== "null") ? saved : null;});
   const [faults, setFaults] = useState([])
   const [attempts, setLoginAttempts] = useState(0)
@@ -29,7 +29,6 @@ function App() {
       const recievedToken = data.token
       localStorage.setItem("token", recievedToken);
       setToken(recievedToken)
-      isLoggedIn(true)
     } else {
       const nextAttempt = attempts + 1
       setLoginAttempts(nextAttempt)
