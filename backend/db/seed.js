@@ -1,5 +1,8 @@
 const Database = require('better-sqlite3')
-const db = new Database('ar_transport.db')
+const path = require('path');
+
+const dbPath = path.resolve(__dirname, '../ar_transport.db');
+const db = new Database(dbPath);
 
 // Name data
 const firstNames = ['James', 'Sophie', 'Ahmed', 'Claire', 'Luc', 'Pierre', 'Emma', 'Hassan', 'Rafael', 'Connor', 'Sergiu', 'Joe', 'Jacob']
@@ -33,8 +36,8 @@ const endedTimes = [
 // Fault data
 const faultTypes = ['Crack', 'Drainage Blockage', 'Signage Damage', 'Electrical Fault', 'Rail Defect', 'Concrete Spalling']
 const assetClasses = ['Civil', 'M&E', 'Track', 'Signage']
-const severities = ['low', 'medium', 'high', 'critical']
-const statuses = ['open', 'in_progress', 'resolved', 'closed']
+const severities = ['Low', 'Medium', 'High', 'Critical']
+const statuses = ['Open', 'In Progress', 'Resolved', 'Closed']
 
 // Audit data
 const eventTypes = ['LOGIN', 'LOGOUT', 'FAULT_CREATED', 'TOOL_CHECKOUT', 'SESSION_STARTED', 'SESSION_ENDED']

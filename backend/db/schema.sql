@@ -36,8 +36,8 @@ CREATE TABLE faults (
     location_id  INTEGER NOT NULL REFERENCES locations(id),
     fault_type   TEXT    NOT NULL,
     asset_class  TEXT    NOT NULL,
-    severity     TEXT    NOT NULL CHECK (severity IN ('low', 'medium', 'high', 'critical')),
-    status       TEXT    NOT NULL CHECK (status IN ('open', 'in_progress', 'resolved', 'closed')),
+    severity     TEXT    NOT NULL CHECK (severity IN ('Low', 'Medium', 'High', 'Critical')),
+    status       TEXT    NOT NULL CHECK (status IN ('Open', 'In Progress', 'Resolved', 'Closed')),
     notes        TEXT,
     detected_at  TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP 
 );

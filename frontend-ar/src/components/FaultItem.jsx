@@ -2,11 +2,10 @@ import ViewButton from "./ViewButton";
 
 // values for the color coding of fault severity
 const severityColors = {
-  "Very High": "#ff0000",
+  "Critical": "#ff0000",
   "High": "#ff6600",
   "Medium": "#ffcc00",
   "Low": "#00ff00",
-  "None": "#ffffff"
 };
 
  // displays faults

@@ -4,7 +4,7 @@ const JWT_SECRET = process.env.JWT_SECRET
 
 module.exports = (req, res, next) => {
     // try to get the header ragardless of caps
-    const rawHeader = req.headers['authorization'] || req.headers['Authorization'] || req.header('Authorization');
+    const rawHeader = req.headers['authori  zation'] || req.headers['Authorization'] || req.header('Authorization');
 
     if (!rawHeader) {
         return res.status(401).json({message: "Access Denied: No Header Found"});
