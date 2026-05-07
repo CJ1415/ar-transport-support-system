@@ -5,7 +5,7 @@ CREATE TABLE users (
     id            INTEGER   PRIMARY KEY AUTOINCREMENT,
     username      TEXT      NOT NULL    UNIQUE,
     password_hash TEXT      NOT NULL,
-    role          TEXT      NOT NULL,
+    role          TEXT      NOT NULL CHECK (role IN ('inspector', 'engineer', 'supervisor', 'admin')),
     jurisdiction  TEXT      NOT NULL,
     created_at    TEXT      DEFAULT CURRENT_TIMESTAMP
 );
@@ -36,8 +36,8 @@ CREATE TABLE faults (
     location_id  INTEGER NOT NULL REFERENCES locations(id),
     fault_type   TEXT    NOT NULL,
     asset_class  TEXT    NOT NULL,
-    severity     TEXT    NOT NULL,
-    status       TEXT    NOT NULL,
+    severity     TEXT    NOT NULL CHECK (severity IN ('low', 'medium', 'high', 'critical')),
+    status       TEXT    NOT NULL CHECK (status IN ('open', 'in_progress', 'resolved', 'closed')),
     notes        TEXT,
     detected_at  TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP 
 );
@@ -56,7 +56,7 @@ CREATE TABLE tool_check_logs (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     tool_id      INTEGER NOT NULL REFERENCES tools(id),
     session_id   INTEGER NOT NULL REFERENCES sessions(id),
-    action       TEXT    NOT NULL,
+    action       TEXT    NOT NULL CHECK (action IN ('check_in', 'check_out')),
     checked_at   TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP 
 );
 
