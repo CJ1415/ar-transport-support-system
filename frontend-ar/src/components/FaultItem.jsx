@@ -11,6 +11,15 @@ const severityColors = {
 
  // displays faults
 function FaultItem({ fault }) {
+
+  const handleReport = async () => {
+    await fetch('http://localhost:3000/api/faults/report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(fault)
+    });
+  };
+
   return (
     <li key={fault.id} className="fault-item">
       <div style = {{display: "flex", justifyContent: "space-between", alignItems: "center" }}>

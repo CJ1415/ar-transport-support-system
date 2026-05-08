@@ -4,6 +4,24 @@ import { useState } from "react";
 function LoggedInView({ faults, logout }) {
   const [showReportForm, setShowReportForm] = useState(false);
   const [severity, setSeverity] = useState("");
+  const [location, setLocation] = useState("");
+  const [type, setType] = useState("");
+
+  const handleSubmit = async () => {
+    const token = localStorage.getItem("token");
+
+    await fetch("http://localhost:3000/api/faults/report", {
+      method: 'POST',
+      headers: { 'Content-Type': 'applications/json', 'Authorization': `Bearer ${token}`},
+      body: JSON.stringify({ location, type, severity})
+    })
+  
+    setShowReportForm(false);
+    setLocation("");
+    setType("");
+    setSeverity("");
+  };
+
 
   return (
     <div className="fault-list">
@@ -38,8 +56,17 @@ function LoggedInView({ faults, logout }) {
 
             <h3>Report New Fault</h3>
 
-            <input placeholder="Location" />
-            <input placeholder="Type" />
+            <input 
+              placeholder="Location"
+              value = {location}
+              onChange ={(e) => setLocation(e.target.value)}
+            />
+
+            <input
+              placeholder="Type"
+              value = {type}
+              onChange = {(e) => setType(e.target.value)}
+            />
 
             <select value={severity} onChange={(e) => setSeverity(e.target.value)}>
               <option value ="" disabled>
@@ -56,7 +83,7 @@ function LoggedInView({ faults, logout }) {
                     Cancel
                 </button>
 
-                <button onClick={() => console.log("Submit Fault")}>
+                <button onClick={() => handleSubmit()}>
                     Submit
                 </button>
             </div>
