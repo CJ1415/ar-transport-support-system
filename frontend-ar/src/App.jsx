@@ -86,7 +86,6 @@ function App() {
 return (
   <div className={`dashboard-container ${theme}`}>
     <h1>AR Fault System</h1>
-
     <button className='theme-btn' onClick={toggleTheme}>
       Switch Theme
     </button>
