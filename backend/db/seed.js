@@ -18,10 +18,9 @@ const endedTimes = [
     '2026-05-04 08:15:00', '2026-05-05 16:00:00', '2026-05-06 13:30:00', '2026-05-07 10:00:00'
 ]
 
-const faultTypes = ['Crack', 'Drainage Blockage', 'Signage Damage', 'Electrical Fault', 'Rail Defect', 'Concrete Spalling']
+const faultTypes = ['Crack', 'Drainage Blockage', 'Signage Damage', 'Electrical Fault', 'Rail Defect', 'Concrete Spalling', 'Ventilation Fault']
 const assetClasses = ['Civil', 'M&E', 'Track', 'Signage']
 const severities = ['Low', 'Medium', 'High', 'Critical']
-const statuses = ['Open', 'In progress', 'Resolved', 'Closed']
 const eventTypes = ['LOGIN', 'LOGOUT', 'FAULT_CREATED', 'TOOL_CHECKOUT', 'SESSION_STARTED', 'SESSION_ENDED']
 const entityTypes = ['user', 'fault', 'session', 'tool']
 const actions = ['Check in', 'Check out']
@@ -63,10 +62,79 @@ function seedSessions(userIds, locationIds) {
     return sessionIds
 }
 
-function seedFaults(sessionIds, locationIds) {
-    const stmt = db.prepare('INSERT INTO faults (session_id, location_id, fault_type, asset_class, severity, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?)')
-    for (let i = 0; i < 15; i++) {
-        stmt.run(pick(sessionIds), pick(locationIds), pick(faultTypes), pick(assetClasses), pick(severities), pick(statuses), 'Routine inspection note ' + (i + 1))
+    function seedFaults(sessionIds, locationIds) {
+        const stmt = db.prepare('INSERT INTO faults (session_id, location_id, fault_type, asset_class, severity, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?)')
+
+        // Weighted severity based on fault type and tunnel section
+        // Reflects real-world maintenance risk profiles for the Channel Tunnel
+        function pickSeverity(faultType, tunnelSection) {
+            const isSubsea = tunnelSection.includes('Subsea')
+            const isCoastal = tunnelSection.includes('Coastal')
+
+            const weights = {
+        'Ventilation Fault':  isSubsea  ? ['Critical', 'Critical', 'Critical', 'Critical', 'Critical', 'Critical', 'Critical', 'Critical', 'High', 'High']
+                            : isCoastal ? ['Critical', 'Critical', 'Critical', 'High', 'High', 'High', 'High', 'Medium', 'Medium', 'Low']
+                            :             ['Critical', 'Critical', 'High', 'High', 'High', 'High', 'Medium', 'Medium', 'Medium', 'Low'],
+
+        'Rail Defect':        isSubsea  ? ['Critical', 'Critical', 'Critical', 'Critical', 'High', 'High', 'High', 'High', 'Medium', 'Low']
+                            :             ['Critical', 'Critical', 'High', 'High', 'High', 'High', 'Medium', 'Medium', 'Medium', 'Low'],
+
+        'Crack':              isSubsea  ? ['Critical', 'Critical', 'Critical', 'High', 'High', 'High', 'Medium', 'Medium', 'Low', 'Low']
+                            :             ['Critical', 'High', 'High', 'High', 'Medium', 'Medium', 'Medium', 'Low', 'Low', 'Low'],
+
+        'Concrete Spalling':  isSubsea  ? ['Critical', 'Critical', 'High', 'High', 'High', 'High', 'Medium', 'Medium', 'Low', 'Low']
+                            :             ['Critical', 'High', 'High', 'High', 'Medium', 'Medium', 'Medium', 'Low', 'Low', 'Low'],
+
+        'Electrical Fault':   ['Critical', 'Critical', 'High', 'High', 'High', 'Medium', 'Medium', 'Medium', 'Low', 'Low'],
+
+        'Drainage Blockage':  isSubsea  ? ['Critical', 'High', 'High', 'High', 'Medium', 'Medium', 'Medium', 'Low', 'Low', 'Low']
+                            :             ['High', 'Medium', 'Medium', 'Medium', 'Low', 'Low', 'Low', 'Low', 'Low', 'Low'],
+
+        'Signage Damage':     ['High', 'Medium', 'Medium', 'Low', 'Low', 'Low', 'Low', 'Low', 'Low', 'Low'],
+    }
+
+        const options = weights[faultType] || ['Low', 'Medium', 'High', 'Critical']
+        return pick(options)
+    }
+
+    // Asset class based on fault type
+    function pickAssetClass(faultType) {
+        const map = {
+            'Crack':             'Civil',
+            'Concrete Spalling': 'Civil',
+            'Drainage Blockage': 'Civil',
+            'Rail Defect':       'Track',
+            'Electrical Fault':  'M&E',
+            'Ventilation Fault': 'M&E',
+            'Signage Damage':    'Signage',
+        }
+        return map[faultType] || pick(assetClasses)
+    }
+
+    // Mainly resolved/closed historical faults — used for ML training data
+    for (let i = 0; i < 160; i++) {
+        const faultType = pick(faultTypes)
+        const locationId = pick(locationIds)
+
+        // Get tunnel section for this location to inform severity
+        const location = db.prepare('SELECT tunnel_section FROM locations WHERE id = ?').get(locationId)
+        const severity = pickSeverity(faultType, location.tunnel_section)
+        const assetClass = pickAssetClass(faultType)
+
+        // Historical
+        stmt.run(pick(sessionIds), locationId, faultType, assetClass, severity, pick(['Resolved', 'Closed']), 'Historical fault record ' + (i + 1))
+    }
+
+    // Active faults — current open issues
+    for (let i = 0; i < 40; i++) {
+        const faultType = pick(faultTypes)
+        const locationId = pick(locationIds)
+
+        const location = db.prepare('SELECT tunnel_section FROM locations WHERE id = ?').get(locationId)
+        const severity = pickSeverity(faultType, location.tunnel_section)
+        const assetClass = pickAssetClass(faultType)
+
+        stmt.run(pick(sessionIds), locationId, faultType, assetClass, severity, pick(['Open', 'In progress']), 'Active fault record ' + (i + 1))
     }
 }
 
