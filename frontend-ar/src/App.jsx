@@ -14,7 +14,10 @@ function App() {
     return (saved && saved !== "undefined" && saved !== "null") ? saved : null;});
   const [faults, setFaults] = useState([])
   const [attempts, setLoginAttempts] = useState(0)
-  const [theme, setTheme] = useState("dark")
+  const [theme, setTheme] = useState(() => {
+    const savedTheme = localStorage.getItem("theme")
+    return savedTheme === "light" || savedTheme === "dark" ? savedTheme : "dark"
+  })
 
   // fetches login url using POST method, sends username and password to backend
   async function loggingIn(){
@@ -67,6 +70,10 @@ function App() {
     }
   }, [token]);
 
+  useEffect(() => {
+    localStorage.setItem("theme", theme)
+  }, [theme]);
+
   // handle username typing
   function handleUsernameInput(e){
     setUsername(e.target.value)
@@ -79,16 +86,21 @@ function App() {
 
   // handle theme toggle between light and dark
   const toggleTheme = () => {
-    setTheme(prevTheme => (prevTheme === "light" ? "dark" : "light"));
+    setTheme(prevTheme => {
+      const nextTheme = prevTheme === "light" ? "dark" : "light"
+      localStorage.setItem("theme", nextTheme)
+      return nextTheme
+    })
   };
 
 // jsx return block
 return (
   <div className={`dashboard-container ${theme}`}>
-    <h1>AR Fault System</h1>
-    <button className='theme-btn' onClick={toggleTheme}>
-      Switch Theme
-    </button>
+    <header className="app-shell-header">
+      <button className='theme-btn' onClick={toggleTheme}>
+        Switch Theme
+      </button>
+    </header>
 
     {!token ? (
       <LoggedOutView
@@ -102,6 +114,7 @@ return (
     ) : (
       <LoggedInView
         faults={faults}
+        refreshFaults={fetchFaults}
         logout={() => {
           localStorage.clear();
           setToken(null);

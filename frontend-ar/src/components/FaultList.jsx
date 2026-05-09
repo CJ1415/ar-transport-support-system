@@ -1,14 +1,16 @@
 import FaultItem from "./FaultItem";
 
-function FaultList({ faults }) {
+function FaultList({ faults, onSelectFault, onCompleteFault, onDeleteFault }) {
   return (
     <ul>
       {faults.length > 0 ? (
         faults.map((fault) => (
           <FaultItem
-          key={fault.id}
-          fault={fault}
-          severityColor = {fault.severity}
+            key={fault.id}
+            fault={fault}
+            onSelect={() => onSelectFault && onSelectFault(fault)}
+            onComplete={() => onCompleteFault && onCompleteFault(fault)}
+            onDelete={() => onDeleteFault && onDeleteFault(fault)}
           />
         ))
       ) : (

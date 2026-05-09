@@ -7,30 +7,46 @@ function LoggedOutView({
   loggingIn
 }) {
   return (
-    <div className="login-form">
-      <input
-        type="text"
-        placeholder="Username"
-        value={username}
-        onChange={handleUsernameInput}
-      />
+    <div className="login-shell">
+      <div className="login-card">
+        <div className="login-brand">
+          <span className="brand-tag">AR HUB</span>
+          <h2>Tunnel Inspection Console</h2>
+          <p className="brand-copy">Secure access to fault reporting, network status, and civil infrastructure monitoring.</p>
+        </div>
 
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={handlePasswordInput}
-      />
+        <form
+          className="login-form"
+          onSubmit={(e) => {
+            e.preventDefault()
+            loggingIn()
+          }}
+        >
+          <input
+            type="text"
+            placeholder="Username"
+            value={username}
+            onChange={handleUsernameInput}
+          />
 
-      {attempts > 0 && (
-        <p style={{ color: 'red', fontWeight: 'bold' }}>
-          Login failed. Attempt: {attempts}
-        </p>
-      )}
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={handlePasswordInput}
+          />
 
-      <button className="login" onClick={loggingIn}>
-        Log In
-      </button>
+          {attempts > 0 && (
+            <p className="login-error">
+              Login failed. Attempt: {attempts}
+            </p>
+          )}
+
+          <button className="login" type="submit">
+            Log In
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
