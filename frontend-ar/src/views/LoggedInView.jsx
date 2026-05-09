@@ -1,5 +1,6 @@
 import FaultList from "../components/FaultList";
 import { useState, useEffect } from "react";
+import AnalyticsPanel from "./AnalyticsPanel";
 
 function LoggedInView({ faults, refreshFaults, logout, theme, toggleTheme }) {
   const [showReportForm, setShowReportForm] = useState(false);
@@ -175,6 +176,10 @@ function LoggedInView({ faults, refreshFaults, logout, theme, toggleTheme }) {
           onCompleteFault={(fault) => completeFault(fault.id)}
           onDeleteFault={(fault) => deleteFault(fault.id)}
         />
+      </div>
+
+      <div className="analytics-section">
+        <AnalyticsPanel />
       </div>
 
       <div className="dashboard-actions ar-button-row">

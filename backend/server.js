@@ -10,6 +10,9 @@ app.use(cors({origin: 'http://localhost:5173'}));
 
 const faultRoutes = require('./routes/faults');
 const authRoutes = require('./routes/auth');
+const analyticsRoutes = require('./routes/analytics');
+
+app.use('/api/analytics', protect, analyticsRoutes);
 
 app.use('/api/faults', protect, faultRoutes);
 
