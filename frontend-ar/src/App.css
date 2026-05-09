@@ -55,6 +55,7 @@ body {
   background-color: var(--bg-color);
   color: var(--text-main);
   transition: background-color 0.3s ease, color 0.3s ease;
+  position: relative;
 }
 
 /* text stuff */
@@ -99,10 +100,12 @@ p.subtitle { margin-top: 0; opacity: 0.7; font-style: italic; }
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 40px 20px;
+  padding: 60px 20px 20px;
+  position: relative;
 }
 
 .login-card {
+  position: relative;
   width: min(440px, 100%);
   background: var(--surface-bg);
   border: 1px solid var(--card-border);
@@ -197,13 +200,31 @@ button:active { transform: scale(0.98); }
 
 .login { margin-top: 10px; }
 .logout { background: #4b5563; color: var(--button-text); }
+
 .theme-btn {
-  margin: 0 0 0 auto;
   padding: 10px 16px;
   font-size: 0.95rem;
   border-radius: 999px;
   min-width: 110px;
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+}
+
+.theme-btn.theme-toggle {
+  min-width: auto;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: var(--surface-bg);
+  border: 2px solid var(--input-border);
+  color: var(--text-main);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  flex-shrink: 0;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .theme-btn:hover,
@@ -212,6 +233,26 @@ button:active { transform: scale(0.98); }
 .view-button:hover {
   opacity: 0.92;
   background: var(--button-hover);
+}
+
+.theme-btn.theme-toggle:hover {
+  background: var(--button-bg);
+  border-color: var(--button-bg);
+  color: var(--button-text);
+}
+
+.dashboard-container .theme-toggle {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  z-index: 10;
+}
+
+.login-shell .theme-toggle {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  z-index: 10;
 }
 
 /* fault list layout */
@@ -289,10 +330,12 @@ ul {
   border-radius: 18px;
   background: var(--surface-bg);
   border: 1px solid var(--card-border);
+  position: relative;
 }
 
 .dashboard-titles {
   min-width: 0;
+  grid-column: 1 / -1;
 }
 
 .dashboard-titles .eyebrow {

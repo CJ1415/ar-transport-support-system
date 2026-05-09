@@ -4,11 +4,16 @@ function LoggedOutView({
   attempts,
   handleUsernameInput,
   handlePasswordInput,
-  loggingIn
+  loggingIn,
+  theme,
+  toggleTheme
 }) {
   return (
     <div className="login-shell">
       <div className="login-card">
+        <button className='theme-btn theme-toggle' onClick={toggleTheme} title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`} aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}>
+          Switch Theme
+        </button>
         <div className="login-brand">
           <span className="brand-tag">AR HUB</span>
           <h2>Tunnel Inspection Console</h2>

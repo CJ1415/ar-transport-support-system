@@ -1,7 +1,7 @@
 import FaultList from "../components/FaultList";
 import { useState, useEffect } from "react";
 
-function LoggedInView({ faults, refreshFaults, logout }) {
+function LoggedInView({ faults, refreshFaults, logout, theme, toggleTheme }) {
   const [showReportForm, setShowReportForm] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedFault, setSelectedFault] = useState(null);
@@ -132,6 +132,9 @@ function LoggedInView({ faults, refreshFaults, logout }) {
   return (
     <div className="logged-in-container">
       <div className="dashboard-header">
+        <button className='theme-btn theme-toggle' onClick={toggleTheme} title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`} aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}>
+          Switch Theme
+        </button>
         <div className="dashboard-titles">
           <p className="eyebrow">Civil Engineering AR Support</p>
           <h2>Fault Management Dashboard</h2>
