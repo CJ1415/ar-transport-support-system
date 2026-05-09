@@ -5,8 +5,8 @@ import LoggedInView from "./views/LoggedInView";
 
 function App() {
 
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("admin");
+  const [password, setPassword] = useState("admin123");
   const [color, setColor] = useState();
   const [token, setToken] = useState(() => {
     // check if we have a token in storage already
@@ -96,12 +96,6 @@ function App() {
 // jsx return block
 return (
   <div className={`dashboard-container ${theme}`}>
-    <header className="app-shell-header">
-      <button className='theme-btn' onClick={toggleTheme}>
-        Switch Theme
-      </button>
-    </header>
-
     {!token ? (
       <LoggedOutView
         username={username}
@@ -110,6 +104,8 @@ return (
         handleUsernameInput={handleUsernameInput}
         handlePasswordInput={handlePasswordInput}
         loggingIn={loggingIn}
+        theme={theme}
+        toggleTheme={toggleTheme}
       />
     ) : (
       <LoggedInView
@@ -119,6 +115,8 @@ return (
           localStorage.clear();
           setToken(null);
         }}
+        theme={theme}
+        toggleTheme={toggleTheme}
       />
     )}
   </div>
