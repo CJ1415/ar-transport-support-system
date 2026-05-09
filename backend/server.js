@@ -5,12 +5,11 @@ const app = express();
 const protect = require('./middleware/authMiddleware');
 const PORT = process.env.PORT
 
+app.use(express.json());
+app.use(cors({origin: 'http://localhost:5173'}));
+
 const faultRoutes = require('./routes/faults');
 const authRoutes = require('./routes/auth');
-
-app.use(express.json());
-
-app.use(cors({origin: 'http://localhost:5173'}));
 
 app.use('/api/faults', protect, faultRoutes);
 
