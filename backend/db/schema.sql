@@ -1,17 +1,17 @@
 PRAGMA foreign_keys = ON;
 
 -- Users table
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id            INTEGER   PRIMARY KEY AUTOINCREMENT,
     username      TEXT      NOT NULL    UNIQUE,
     password_hash TEXT      NOT NULL,
-    role          TEXT      NOT NULL CHECK (role IN ('inspector', 'engineer', 'supervisor', 'admin')),
+    role          TEXT      NOT NULL CHECK (role IN ('Inspector', 'Engineer', 'Supervisor', 'Admin')),
     jurisdiction  TEXT      NOT NULL,
     created_at    TEXT      DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Locations table
-CREATE TABLE locations (
+CREATE TABLE IF NOT EXISTS locations (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
     name           TEXT    NOT NULL,
     chainage_m     REAL    NOT NULL,
@@ -20,7 +20,7 @@ CREATE TABLE locations (
 );
 
 -- Sessions table
-CREATE TABLE sessions (
+CREATE TABLE IF NOT EXISTS sessions (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id     INTEGER NOT NULL    REFERENCES users(id),
     location_id INTEGER NOT NULL    REFERENCES locations(id),
@@ -30,20 +30,21 @@ CREATE TABLE sessions (
 );
 
 -- Faults table
-CREATE TABLE faults (
+CREATE TABLE IF NOT EXISTS faults (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     session_id   INTEGER NOT NULL REFERENCES sessions(id),
     location_id  INTEGER NOT NULL REFERENCES locations(id),
     fault_type   TEXT    NOT NULL,
     asset_class  TEXT    NOT NULL,
     severity     TEXT    NOT NULL CHECK (severity IN ('Low', 'Medium', 'High', 'Critical')),
-    status       TEXT    NOT NULL CHECK (status IN ('Open', 'In Progress', 'Resolved', 'Closed')),
+    status       TEXT    NOT NULL CHECK (status IN ('Open', 'In progress', 'Resolved', 'Closed')),
     notes        TEXT,
+    deleted_at   TEXT,
     detected_at  TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP 
 );
 
 -- Tools table
-CREATE TABLE tools (
+CREATE TABLE IF NOT EXISTS tools (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     name            TEXT    NOT NULL,
     category        TEXT    NOT NULL,
@@ -52,16 +53,16 @@ CREATE TABLE tools (
 );
 
 -- Tool check logs table
-CREATE TABLE tool_check_logs (
+CREATE TABLE IF NOT EXISTS tool_check_logs (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     tool_id      INTEGER NOT NULL REFERENCES tools(id),
     session_id   INTEGER NOT NULL REFERENCES sessions(id),
-    action       TEXT    NOT NULL CHECK (action IN ('check_in', 'check_out')),
+    action       TEXT    NOT NULL CHECK (action IN ('Check in', 'Check out')),
     checked_at   TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP 
 );
 
 -- Audit logs table
-CREATE TABLE audit_logs (
+CREATE TABLE IF NOT EXISTS audit_logs (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id      INTEGER NOT NULL REFERENCES users(id),
     event_type   TEXT    NOT NULL,

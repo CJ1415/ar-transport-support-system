@@ -11,3 +11,6 @@ Thumbs.db
 # Build folders
 dist/
 build/
+
+# Database files
+*.db
