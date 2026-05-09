@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS faults (
     severity     TEXT    NOT NULL CHECK (severity IN ('Low', 'Medium', 'High', 'Critical')),
     status       TEXT    NOT NULL CHECK (status IN ('Open', 'In progress', 'Resolved', 'Closed')),
     notes        TEXT,
+    deleted_at   TEXT,
     detected_at  TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP 
 );
 

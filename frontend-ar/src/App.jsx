@@ -1,19 +1,23 @@
 import { useEffect, useState } from 'react'
 import './App.css'
+import LoggedOutView from "./views/LoggedOutView";
+import LoggedInView from "./views/LoggedInView";
 
 function App() {
 
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("admin");
+  const [password, setPassword] = useState("admin123");
   const [color, setColor] = useState();
   const [token, setToken] = useState(() => {
     // check if we have a token in storage already
-    const saved = localStorage.getItem("token")
+  const saved = localStorage.getItem("token")
     return (saved && saved !== "undefined" && saved !== "null") ? saved : null;});
-  const [loggedIn, isLoggedIn] = useState(false);
   const [faults, setFaults] = useState([])
   const [attempts, setLoginAttempts] = useState(0)
-  const [theme, setTheme] = useState("dark")
+  const [theme, setTheme] = useState(() => {
+    const savedTheme = localStorage.getItem("theme")
+    return savedTheme === "light" || savedTheme === "dark" ? savedTheme : "dark"
+  })
 
   // fetches login url using POST method, sends username and password to backend
   async function loggingIn(){
@@ -28,7 +32,6 @@ function App() {
       const recievedToken = data.token
       localStorage.setItem("token", recievedToken);
       setToken(recievedToken)
-      isLoggedIn(true)
     } else {
       const nextAttempt = attempts + 1
       setLoginAttempts(nextAttempt)
@@ -67,6 +70,10 @@ function App() {
     }
   }, [token]);
 
+  useEffect(() => {
+    localStorage.setItem("theme", theme)
+  }, [theme]);
+
   // handle username typing
   function handleUsernameInput(e){
     setUsername(e.target.value)
@@ -79,77 +86,38 @@ function App() {
 
   // handle theme toggle between light and dark
   const toggleTheme = () => {
-    setTheme(prevTheme => (prevTheme === "light" ? "dark" : "light"));
+    setTheme(prevTheme => {
+      const nextTheme = prevTheme === "light" ? "dark" : "light"
+      localStorage.setItem("theme", nextTheme)
+      return nextTheme
+    })
   };
-
-  // values for the color coding of fault severity
-  const severityColors = {
-  "Very High": "#ff0000",
-  "High": "#ff6600",
-  "Medium": "#ffcc00",
-  "Low": "#00ff00",
-  "None": "#ffffff"       
-};
 
 // jsx return block
 return (
   <div className={`dashboard-container ${theme}`}>
-    <h1>AR Fault System</h1>
-    
-    <button className='theme-btn' onClick={toggleTheme}>
-      Switch Theme
-    </button>
-
-    <hr style={{ width: '100%', maxWidth: '600px', opacity: '0.2' }} />
-
     {!token ? (
-      // logged out view, this is known as login-form for reference in other files such as css
-      <div className="login-form">
-        <input
-          type="text"
-          placeholder="Username"
-          value={username}
-          onChange={handleUsernameInput}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={handlePasswordInput}
-        />
-        {attempts > 0 && (
-          <p style={{ color: 'red', fontWeight: 'bold' }}>
-            Login failed. Attempt: {attempts}
-          </p>
-        )}
-        <button className='login' onClick={loggingIn}>
-          Log In
-        </button>
-      </div>
+      <LoggedOutView
+        username={username}
+        password={password}
+        attempts={attempts}
+        handleUsernameInput={handleUsernameInput}
+        handlePasswordInput={handlePasswordInput}
+        loggingIn={loggingIn}
+        theme={theme}
+        toggleTheme={toggleTheme}
+      />
     ) : (
-      // logged in view, this is known as 'fault-list' for reference in other files such as css 
-      <div className="fault-list">
-        <h2>Active Transport Faults</h2>
-        <ul>
-          {faults.length > 0 ? (
-            faults.map((fault) => (
-              <li key={fault.id} className="fault-item">
-                <strong className="location-name">{fault.location}</strong>
-                <span>Type: {fault.type}</span> | 
-                <span style={{ 
-                  color: severityColors[fault.severity] || "white",
-                  fontWeight: 'bold' 
-                }}> Severity: {fault.severity}</span>
-              </li>
-            ))
-          ) : (
-            <p>No faults found in the system</p>
-          )}
-        </ul>
-        <button className="logout" onClick={() => { localStorage.clear(); setToken(null); }}>
-          Log Out
-        </button>
-      </div>
+      <LoggedInView
+        faults={faults}
+        refreshFaults={fetchFaults}
+        logout={() => {
+          localStorage.clear();
+          setToken(null);
+        }}
+        theme={theme}
+        toggleTheme={toggleTheme}
+      />
     )}
   </div>
 );
