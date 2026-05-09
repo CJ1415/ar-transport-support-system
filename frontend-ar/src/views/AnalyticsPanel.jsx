@@ -25,7 +25,7 @@ function AnalyticsPanel() {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 const data = await response.json();
-                setSeverityData(data);
+                if (Array.isArray(data)) setSeverityData(data);
             } catch (err) {
                 console.error("Failed to fetch severity breakdown:", err);
             }
@@ -37,7 +37,7 @@ function AnalyticsPanel() {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 const data = await response.json();
-                setFaultTypeData(data);
+                if (Array.isArray(data)) setFaultTypeData(data);
             } catch (err) {
                 console.error("Failed to fetch fault types:", err);
             }
@@ -49,7 +49,7 @@ function AnalyticsPanel() {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 const data = await response.json();
-                setToolData(data);
+                if (Array.isArray(data)) setToolData(data);
             } catch (err) {
                 console.error("Failed to fetch tool status:", err);
             }
@@ -61,7 +61,7 @@ function AnalyticsPanel() {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 const data = await response.json();
-                setSessionData(data);
+                if (Array.isArray(data)) setSessionData(data);
             } catch (err) {
                 console.error("Failed to fetch active sessions:", err);
             }
@@ -73,7 +73,7 @@ function AnalyticsPanel() {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 const data = await response.json();
-                setAuditData(data);
+                if (Array.isArray(data)) setAuditData(data);
             } catch (err) {
                 console.error("Failed to fetch audit log:", err);
             }
@@ -85,7 +85,7 @@ function AnalyticsPanel() {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 const data = await response.json();
-                setMlData(data);
+                if (Array.isArray(data)) setMlData(data);
             } catch (err) {
                 console.error("Failed to fetch ML predictions:", err);
             }
@@ -103,7 +103,6 @@ function AnalyticsPanel() {
         <div className="analytics-panel">
             <h3>Analytics Overview</h3>
 
-            {/* Severity Breakdown Chart */}
             <div className="chart-card">
                 <h4>Fault Severity Breakdown</h4>
                 <ResponsiveContainer width="100%" height={250}>
@@ -124,7 +123,6 @@ function AnalyticsPanel() {
                 </ResponsiveContainer>
             </div>
 
-            {/* Fault Type Breakdown Chart */}
             <div className="chart-card">
                 <h4>Fault Type Breakdown</h4>
                 <ResponsiveContainer width="100%" height={250}>
@@ -150,7 +148,6 @@ function AnalyticsPanel() {
                 </ResponsiveContainer>
             </div>
 
-            {/* Tool Tracking */}
             <div className="chart-card">
                 <h4>Tool Tracking</h4>
                 <table className="analytics-table">
@@ -181,7 +178,6 @@ function AnalyticsPanel() {
                 </table>
             </div>
 
-            {/* Active Sessions */}
             <div className="chart-card">
                 <h4>Active Sessions</h4>
                 {sessionData.length === 0 ? (
@@ -214,21 +210,21 @@ function AnalyticsPanel() {
                 )}
             </div>
 
-            {/* ML Predictions */}
             <div className="chart-card">
                 <h4>ML Severity Predictions — Active Faults</h4>
-                <p className="chart-description">Predicted severity for open and in-progress faults based on fault type, asset class, tunnel section and zone type.</p>
+                <p className="chart-description">Predicted severity for open and in-progress faults based on fault type, asset class, tunnel section and zone type. Sorted by confidence.</p>
                 {mlData.length === 0 ? (
-                    <p className="no-data">No active faults to predict</p>
+                    <p className="no-data">No predictions found — run fault_severity_model.py first</p>
                 ) : (
                     <table className="analytics-table">
                         <thead>
                             <tr>
                                 <th>Fault Type</th>
-                                <th>Asset Class</th>
                                 <th>Location</th>
                                 <th>Tunnel Section</th>
                                 <th>Actual Severity</th>
+                                <th>Predicted Severity</th>
+                                <th>Confidence</th>
                                 <th>Status</th>
                             </tr>
                         </thead>
@@ -236,7 +232,6 @@ function AnalyticsPanel() {
                             {mlData.map((fault) => (
                                 <tr key={fault.id}>
                                     <td>{fault.fault_type}</td>
-                                    <td>{fault.asset_class}</td>
                                     <td>{fault.location}</td>
                                     <td>{fault.tunnel_section}</td>
                                     <td>
@@ -244,6 +239,12 @@ function AnalyticsPanel() {
                                             {fault.actual_severity}
                                         </span>
                                     </td>
+                                    <td>
+                                        <span className={`status-badge badge-${fault.predicted_severity?.toLowerCase()}`}>
+                                            {fault.predicted_severity}
+                                        </span>
+                                    </td>
+                                    <td>{fault.confidence?.toFixed(1)}%</td>
                                     <td>{fault.status}</td>
                                 </tr>
                             ))}
@@ -252,7 +253,6 @@ function AnalyticsPanel() {
                 )}
             </div>
 
-            {/* Audit Log */}
             <div className="chart-card">
                 <h4>Audit Log</h4>
                 <table className="analytics-table">

@@ -24,6 +24,7 @@ db.exec(schema)
 
 // Delete any previous data in the db
 db.exec(`
+    DELETE FROM predictions;
     DELETE FROM audit_logs;
     DELETE FROM tool_check_logs;
     DELETE FROM faults;

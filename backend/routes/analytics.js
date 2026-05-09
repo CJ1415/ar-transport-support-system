@@ -134,17 +134,20 @@ router.get('/ml-predictions', (req, res) => {
                 f.status,
                 l.name as location,
                 l.tunnel_section,
-                l.zone_type
+                p.predicted_severity,
+                p.confidence,
+                p.predicted_at
             FROM faults f
             JOIN locations l ON f.location_id = l.id
+            JOIN predictions p ON p.fault_id = f.id
             WHERE f.status IN ('Open', 'In progress')
             AND f.deleted_at IS NULL
-            ORDER BY f.detected_at DESC
+            ORDER BY p.confidence DESC
         `);
         res.json(stmt.all());
     } catch (err) {
         console.error(err.message);
-        res.status(500).json({ error: 'Failed to fetch faults for ML predictions' });
+        res.status(500).json({ error: 'Failed to fetch ML predictions' });
     }
 });
 
