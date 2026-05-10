@@ -70,3 +70,12 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     entity_id    INTEGER NOT NULL,
     occurred_at  TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- ML Predictions table
+CREATE TABLE IF NOT EXISTS predictions (
+    id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+    fault_id           INTEGER NOT NULL REFERENCES faults(id),
+    predicted_severity TEXT    NOT NULL,
+    confidence         REAL    NOT NULL,
+    predicted_at       TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

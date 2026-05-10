@@ -812,3 +812,24 @@ ul {
   }
 }
 
+.tab-bar {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.tab-btn {
+  padding: 8px 24px;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.tab-active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: white;
+}
