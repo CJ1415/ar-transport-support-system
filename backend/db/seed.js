@@ -22,7 +22,7 @@ const faultTypes = ['Crack', 'Drainage Blockage', 'Signage Damage', 'Electrical 
 const assetClasses = ['Civil', 'M&E', 'Track', 'Signage']
 const severities = ['Low', 'Medium', 'High', 'Critical']
 const statuses = ['Open', 'In progress', 'Resolved', 'Closed']
-const eventTypes = ['LOGIN', 'LOGOUT', 'FAULT_CREATED', 'TOOL_CHECKOUT', 'SESSION_STARTED', 'SESSION_ENDED']
+const eventTypes = ['LOGIN', 'LOGOUT', 'FAULT_CREATED', 'FAULT_COMPLETED', 'FAULT_DELETED', 'TOOL_CHECKOUT', 'SESSION_STARTED', 'SESSION_ENDED']
 const entityTypes = ['user', 'fault', 'session', 'tool']
 const actions = ['Check in', 'Check out']
 
@@ -31,12 +31,21 @@ function pick(arr) {
 }
 
 // Pull fixed users and tools from DB
-const userIds = db.prepare('SELECT id FROM users').all().map(r => r.id)
+const users = db.prepare('SELECT id, role FROM users').all()
+const userIds = users.map(r => r.id)
+const adminUserIds = users.filter((u) => u.role === 'Admin').map((u) => u.id)
+const staffUserIds = users.filter((u) => u.role !== 'Admin').map((u) => u.id)
 const toolIds = db.prepare('SELECT id FROM tools').all().map(r => r.id)
 
 // Ensure init.js has been run first
 if (userIds.length === 0 || toolIds.length === 0) {
     console.error('No users or tools found — run init.js first')
+    db.close()
+    process.exit(1)
+}
+
+if (adminUserIds.length === 0) {
+    console.error('No admin users found — ensure init.js seeded an Admin user')
     db.close()
     process.exit(1)
 }
@@ -80,7 +89,9 @@ function seedToolCheckLogs(toolIds, sessionIds) {
 function seedAuditLogs(userIds) {
     const stmt = db.prepare('INSERT INTO audit_logs (user_id, event_type, entity_type, entity_id) VALUES (?, ?, ?, ?)')
     for (let i = 0; i < 20; i++) {
-        stmt.run(pick(userIds), pick(eventTypes), pick(entityTypes), Math.floor(Math.random() * 10) + 1)
+        const eventType = pick(eventTypes)
+        const userPool = ['FAULT_COMPLETED', 'FAULT_DELETED'].includes(eventType) ? adminUserIds : userIds
+        stmt.run(pick(userPool), eventType, pick(entityTypes), Math.floor(Math.random() * 10) + 1)
     }
 }
 
