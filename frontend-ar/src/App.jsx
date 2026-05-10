@@ -8,10 +8,7 @@ function App() {
   const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("admin123");
   const [color, setColor] = useState();
-  const [token, setToken] = useState(() => {
-    // check if we have a token in storage already
-  const saved = localStorage.getItem("token")
-    return (saved && saved !== "undefined" && saved !== "null") ? saved : null;});
+  const [token, setToken] = useState(localStorage.getItem("token"));
   const [faults, setFaults] = useState([])
   const [attempts, setLoginAttempts] = useState(0)
   const [theme, setTheme] = useState(() => {
@@ -22,11 +19,11 @@ function App() {
   // fetches login url using POST method, sends username and password to backend
   async function loggingIn(){
     const response = await fetch("http://localhost:3000/api/auth/login", {
-        method: "POST",   
+        method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({username, password}),
     })
-      
+
     const data = await response.json()
     if (data.success){
       const recievedToken = data.token
@@ -39,33 +36,37 @@ function App() {
   }
 
   const fetchFaults = async () => {
-    // skip fetch if token looks broken
-    if (!token || token === "null" || token === "undefined"){
+  try {
+    const response = await fetch("http://localhost:3000/api/faults", {
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+
+    // token expired / invalid
+    if (response.status === 401 || response.status === 400) {
+      localStorage.removeItem("token");
+      setToken(null);
+      setFaults([]);
       return;
     }
 
-    try {
-      const response = await fetch("http://localhost:3000/api/faults", {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      
-      const data = await response.json();
-    
-      // make sure we actually got an array back before setting state
-      if (Array.isArray(data)) {
-        setFaults(data);
-      } else {
-        setFaults([]); 
-      }
-    } catch (err) {
-      console.error("Fetch failed:", err);
-      setFaults([]); 
+    const data = await response.json();
+
+    // make sure data is always an array
+    if (Array.isArray(data)) {
+      setFaults(data);
+    } else {
+      setFaults([]);
     }
-  };
+
+  } catch (err) {
+    console.error("Fetch failed:", err);
+    setFaults([]);
+  }
+};
 
   useEffect(() => {
     // fetch the fault list once the token is validated
-    if (token && token !== null && token.length > 20) { 
+    if (token && token !== null && token.length > 20) {
       fetchFaults();
     }
   }, [token]);

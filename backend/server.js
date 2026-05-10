@@ -18,4 +18,4 @@ app.use('/api/faults', protect, faultRoutes);
 
 app.use('/api/auth', authRoutes);
 
-app.listen(PORT, () => console.log(`Server running on port`, {PORT}, "hell yeah"));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`, 'hell yeah'));
