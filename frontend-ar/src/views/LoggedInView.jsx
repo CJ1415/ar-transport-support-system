@@ -2,7 +2,10 @@ import FaultList from "../components/FaultList";
 import { useState, useEffect } from "react";
 import AnalyticsPanel from "./AnalyticsPanel";
 
-function LoggedInView({ faults, refreshFaults, logout, theme, toggleTheme }) {
+function LoggedInView({ faults, refreshFaults, logout, role, theme, toggleTheme }) {
+  const isAdmin = role === 'Admin';
+  const canCompleteFault = role === 'Admin' || role === 'Engineer';
+  const canDeleteFault = role === 'Admin';
   const [showReportForm, setShowReportForm] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedFault, setSelectedFault] = useState(null);
@@ -20,7 +23,7 @@ function LoggedInView({ faults, refreshFaults, logout, theme, toggleTheme }) {
     // Fetch locations on component mount
     const fetchLocations = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = sessionStorage.getItem("token");
         console.log("Fetching locations with token:", token);
         const response = await fetch("http://localhost:3000/api/faults/locations", {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -40,7 +43,7 @@ function LoggedInView({ faults, refreshFaults, logout, theme, toggleTheme }) {
   }, []);
 
   const handleSubmit = async () => {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
 
     try {
       const response = await fetch("http://localhost:3000/api/faults/report", {
@@ -76,7 +79,7 @@ function LoggedInView({ faults, refreshFaults, logout, theme, toggleTheme }) {
   };
 
   const completeFault = async (faultId) => {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
 
     try {
       const response = await fetch(`http://localhost:3000/api/faults/${faultId}`, {
@@ -102,7 +105,7 @@ function LoggedInView({ faults, refreshFaults, logout, theme, toggleTheme }) {
   };
 
   const deleteFault = async (faultId) => {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
 
     if (!window.confirm("Delete this fault permanently?")) {
       return;
@@ -130,6 +133,9 @@ function LoggedInView({ faults, refreshFaults, logout, theme, toggleTheme }) {
     }
   };
 
+  const uncompletedFaults = faults.filter((fault) => fault.status !== 'Closed');
+  const completedFaults = faults.filter((fault) => fault.status === 'Closed');
+
   return (
     <div className="logged-in-container">
       <div className="dashboard-header">
@@ -138,7 +144,7 @@ function LoggedInView({ faults, refreshFaults, logout, theme, toggleTheme }) {
         </button>
         <div className="dashboard-titles">
           <p className="eyebrow">Civil Engineering AR Support</p>
-          <h2>Fault Management Dashboard</h2>
+          <h2>{isAdmin ? 'Admin Fault Management Dashboard' : 'Staff Fault Management Dashboard'}</h2>
           <p className="intro">Review active infrastructure faults and submit new reports from the tunnel network.</p>
         </div>
         <div className="dashboard-actions">
@@ -166,16 +172,42 @@ function LoggedInView({ faults, refreshFaults, logout, theme, toggleTheme }) {
         </div>
       </div>
 
-      <div className="fault-panel">
-        <FaultList
-          faults={faults}
-          onSelectFault={(fault) => {
-            setSelectedFault(fault);
-            setShowViewModal(true);
-          }}
-          onCompleteFault={(fault) => completeFault(fault.id)}
-          onDeleteFault={(fault) => deleteFault(fault.id)}
-        />
+      <div className="fault-sections">
+        <section className="fault-section">
+          <div className="section-heading">
+            <h3>Open & In-Progress Faults</h3>
+            <span>{uncompletedFaults.length} items</span>
+          </div>
+          <FaultList
+            faults={uncompletedFaults}
+            onSelectFault={(fault) => {
+              setSelectedFault(fault);
+              setShowViewModal(true);
+            }}
+            onCompleteFault={canCompleteFault ? (fault) => completeFault(fault.id) : null}
+            onDeleteFault={canDeleteFault ? (fault) => deleteFault(fault.id) : null}
+            canComplete={canCompleteFault}
+            canDelete={canDeleteFault}
+          />
+        </section>
+
+        <section className="fault-section completed">
+          <div className="section-heading">
+            <h3>Completed Faults</h3>
+            <span>{completedFaults.length} items</span>
+          </div>
+          <FaultList
+            faults={completedFaults}
+            onSelectFault={(fault) => {
+              setSelectedFault(fault);
+              setShowViewModal(true);
+            }}
+            onCompleteFault={false}
+            onDeleteFault={canDeleteFault ? (fault) => deleteFault(fault.id) : null}
+            canComplete={false}
+            canDelete={canDeleteFault}
+          />
+        </section>
       </div>
 
       <div className="analytics-section">

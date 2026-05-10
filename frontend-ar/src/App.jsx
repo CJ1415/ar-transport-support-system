@@ -10,8 +10,9 @@ function App() {
   const [color, setColor] = useState();
   const [token, setToken] = useState(() => {
     // check if we have a token in storage already
-  const saved = localStorage.getItem("token")
+  const saved = sessionStorage.getItem("token")
     return (saved && saved !== "undefined" && saved !== "null") ? saved : null;});
+  const [userRole, setUserRole] = useState(() => sessionStorage.getItem("userRole") || null);
   const [faults, setFaults] = useState([])
   const [attempts, setLoginAttempts] = useState(0)
   const [theme, setTheme] = useState(() => {
@@ -30,8 +31,10 @@ function App() {
     const data = await response.json()
     if (data.success){
       const recievedToken = data.token
-      localStorage.setItem("token", recievedToken);
+      sessionStorage.setItem("token", recievedToken);
+      sessionStorage.setItem("userRole", data.role || "");
       setToken(recievedToken)
+      setUserRole(data.role || null)
     } else {
       const nextAttempt = attempts + 1
       setLoginAttempts(nextAttempt)
@@ -112,9 +115,15 @@ return (
         faults={faults}
         refreshFaults={fetchFaults}
         logout={() => {
-          localStorage.clear();
+          setUsername("")
+          setPassword("")
+          sessionStorage.clear();
           setToken(null);
+          setUserRole(null);
+          setLoginAttempts(0);
+          setFaults([]);
         }}
+        role={userRole}
         theme={theme}
         toggleTheme={toggleTheme}
       />

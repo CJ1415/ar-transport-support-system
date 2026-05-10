@@ -1,6 +1,6 @@
 import FaultItem from "./FaultItem";
 
-function FaultList({ faults, onSelectFault, onCompleteFault, onDeleteFault }) {
+function FaultList({ faults, onSelectFault, onCompleteFault, onDeleteFault, canComplete, canDelete }) {
   return (
     <ul>
       {faults.length > 0 ? (
@@ -11,6 +11,8 @@ function FaultList({ faults, onSelectFault, onCompleteFault, onDeleteFault }) {
             onSelect={() => onSelectFault && onSelectFault(fault)}
             onComplete={() => onCompleteFault && onCompleteFault(fault)}
             onDelete={() => onDeleteFault && onDeleteFault(fault)}
+            canComplete={canComplete}
+            canDelete={canDelete}
           />
         ))
       ) : (

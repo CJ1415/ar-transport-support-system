@@ -10,7 +10,7 @@ function LoggedOutView({
 }) {
   return (
     <div className="login-shell">
-      <div className="login-card">
+      <div key={attempts} className={`login-card${attempts > 0 ? ' shake' : ''}`}>
         <button className='theme-btn theme-toggle' onClick={toggleTheme} title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`} aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}>
           Switch Theme
         </button>
