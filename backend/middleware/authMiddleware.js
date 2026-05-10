@@ -1,27 +1,58 @@
-const jwt = require("jsonwebtoken")
-const JWT_SECRET = process.env.JWT_SECRET
+const jwt = require("jsonwebtoken");
+const JWT_SECRET = process.env.JWT_SECRET;
 
-
-module.exports = (req, res, next) => {
-    // try to get the header ragardless of caps
-    const rawHeader = req.headers['authorization'] || req.headers['Authorization'] || req.header('Authorization');
+/**
+ * PROTECT: The primary authentication gate.
+ * Verifies the JWT and attaches the user payload to the request.
+ */
+const protect = (req, res, next) => {
+    // Express actually normalizes headers to lowercase, but keeping your 
+    // flexible check just to be safe across different environments!
+    const rawHeader = req.headers['authorization'] || req.headers['Authorization'];
 
     if (!rawHeader) {
-        return res.status(401).json({message: "Access Denied: No Header Found"});
+        return res.status(401).json({ message: "Access Denied: No Header Found" });
     }
 
-    // remove the 'Bearer' from the token so only the token is parsed (this was such a headache of a bug)
+    // Your headache-remedy: Stripping 'Bearer ' if it exists
     const token = rawHeader.startsWith('Bearer ') 
         ? rawHeader.slice(7) 
         : rawHeader;
 
     try {
-        // verify the token and JWT_SECRET to ensure valid access
-        const verified = jwt.verify(token, JWT_SECRET); 
-        req.user = verified;
+        const verified = jwt.verify(token, JWT_SECRET);
+        // Attach the full user object (id, username, role) to the request
+        req.user = verified; 
         next();
     } catch (err) {
-        console.log("JWT Verify Error:", err.message);
-        res.status(400).json({message: "Invalid Token", error: err.message});
+        console.error("JWT Verify Error:", err.message);
+        return res.status(401).json({ message: "Invalid or Expired Token" });
     }
+};
+
+/**
+ * AUTHORIZE ROLES: The RBAC gate.
+ * Use this AFTER 'protect' to restrict access to specific roles.
+ * Usage: authorizeRoles('Admin', 'Supervisor')
+ */
+const authorizeRoles = (...allowedRoles) => {
+    return (req, res, next) => {
+        // If 'protect' didn't run first, req.user won't exist
+        if (!req.user) {
+            return res.status(500).json({ message: "Internal Auth Error: User data missing" });
+        }
+
+        if (!allowedRoles.includes(req.user.role)) {
+            return res.status(403).json({ 
+                message: `Access Forbidden: Your role (${req.user.role}) does not have permission.` 
+            });
+        }
+
+        next();
+    };
+};
+
+module.exports = {
+    protect,
+    authorizeRoles
 };
