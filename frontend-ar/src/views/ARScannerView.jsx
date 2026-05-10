@@ -117,12 +117,53 @@ export default function ARScannerView({ onBack, token }) {
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // --- THE GROQ SWEET SPOT ---
+    // Vision models on Groq (like Llama 3.2) typically resize internally to ~1120px anyway.
+    // Capping at 1024 keeps the detail we need for the dent, but ensures
+    // the Base64 payload stays well under Groq's strict ~4MB limit.
+    const MAX_WIDTH = 1024;
+    const COMPRESSION_QUALITY = 0.85;
+
     const reader = new FileReader();
+
     reader.onload = (ev) => {
-      setImageSrc(ev.target.result);
-      setResult(null);
-      setError(null);
+      const img = new Image();
+      img.src = ev.target.result;
+
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        // Resize proportionally if it exceeds 1024px
+        if (width > MAX_WIDTH || height > MAX_WIDTH) {
+          if (width > height) {
+            height = Math.round((height * MAX_WIDTH) / width);
+            width = MAX_WIDTH;
+          } else {
+            width = Math.round((width * MAX_WIDTH) / height);
+            height = MAX_WIDTH;
+          }
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Force JPEG at 85% quality to keep the file size microscopic for Groq
+        const compressedBase64 = canvas.toDataURL("image/jpeg", COMPRESSION_QUALITY);
+
+        setImageSrc(compressedBase64);
+        setResult(null);
+        setError(null);
+
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      };
     };
+
     reader.readAsDataURL(file);
   };
 
