@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 
+// ── Severity helpers ──────────────────────────────────────────────────────────
 const SEVERITY_COLORS = {
   critical: { border: "#ef4444", bg: "#ef444422", label: "#ef4444", text: "#fff" },
   high:     { border: "#f97316", bg: "#f9731622", label: "#f97316", text: "#fff" },
@@ -24,8 +25,10 @@ function SeverityBadge({ severity }) {
   );
 }
 
+// ── AR Overlay ────────────────────────────────────────────────────────────────
 function AROverlay({ imageSrc, faults, isScanning }) {
   const [tooltip, setTooltip] = useState(null);
+
   return (
     <div style={{ position: "relative", display: "inline-block", maxWidth: "100%" }}>
       <img
@@ -33,6 +36,7 @@ function AROverlay({ imageSrc, faults, isScanning }) {
         alt="Inspection target"
         style={{ display: "block", maxWidth: "100%", maxHeight: "60vh", objectFit: "contain" }}
       />
+
       {isScanning && (
         <div style={{
           position: "absolute", inset: 0, zIndex: 20, pointerEvents: "none",
@@ -45,7 +49,8 @@ function AROverlay({ imageSrc, faults, isScanning }) {
           }} />
         </div>
       )}
-      {!isScanning && (faults ?? []).map((fault, i) => {
+
+      {!isScanning && faults.map((fault, i) => {
         const c = severityColor(fault.severity);
         return (
           <div
@@ -68,6 +73,7 @@ function AROverlay({ imageSrc, faults, isScanning }) {
             }}>
               [{fault.label}]
             </div>
+
             {[
               { top: -2, left: -2, borderTop: `2px solid ${c.border}`, borderLeft: `2px solid ${c.border}` },
               { top: -2, right: -2, borderTop: `2px solid ${c.border}`, borderRight: `2px solid ${c.border}` },
@@ -76,6 +82,7 @@ function AROverlay({ imageSrc, faults, isScanning }) {
             ].map((s, j) => (
               <div key={j} style={{ position: "absolute", width: 8, height: 8, ...s }} />
             ))}
+
             {tooltip === i && (
               <div style={{
                 position: "absolute", top: "100%", left: 0, zIndex: 30,
@@ -98,6 +105,7 @@ function AROverlay({ imageSrc, faults, isScanning }) {
           </div>
         );
       })}
+
       <style>{`
         @keyframes arScanline { from { top: 0; } to { top: 100%; } }
         @keyframes arPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
@@ -106,7 +114,8 @@ function AROverlay({ imageSrc, faults, isScanning }) {
   );
 }
 
-export default function ARScannerView({ onBack, token }) {
+// ── Main Scanner View ─────────────────────────────────────────────────────────
+export default function ARScannerView({ onBack }) {
   const [imageSrc, setImageSrc] = useState(null);
   const [category, setCategory] = useState("train_track");
   const [isScanning, setIsScanning] = useState(false);
@@ -117,66 +126,29 @@ export default function ARScannerView({ onBack, token }) {
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // --- THE GROQ SWEET SPOT ---
-    // Vision models on Groq (like Llama 3.2) typically resize internally to ~1120px anyway.
-    // Capping at 1024 keeps the detail we need for the dent, but ensures
-    // the Base64 payload stays well under Groq's strict ~4MB limit.
-    const MAX_WIDTH = 1024;
-    const COMPRESSION_QUALITY = 0.85;
-
     const reader = new FileReader();
-
     reader.onload = (ev) => {
-      const img = new Image();
-      img.src = ev.target.result;
-
-      img.onload = () => {
-        let width = img.width;
-        let height = img.height;
-
-        // Resize proportionally if it exceeds 1024px
-        if (width > MAX_WIDTH || height > MAX_WIDTH) {
-          if (width > height) {
-            height = Math.round((height * MAX_WIDTH) / width);
-            width = MAX_WIDTH;
-          } else {
-            width = Math.round((width * MAX_WIDTH) / height);
-            height = MAX_WIDTH;
-          }
-        }
-
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, width, height);
-
-        // Force JPEG at 85% quality to keep the file size microscopic for Groq
-        const compressedBase64 = canvas.toDataURL("image/jpeg", COMPRESSION_QUALITY);
-
-        setImageSrc(compressedBase64);
-        setResult(null);
-        setError(null);
-
-        if (fileInputRef.current) fileInputRef.current.value = "";
-      };
+      setImageSrc(ev.target.result);
+      setResult(null);
+      setError(null);
     };
-
     reader.readAsDataURL(file);
   };
 
   const handleScan = () => {
     if (!imageSrc || isScanning) return;
+
     const parts = imageSrc.split(",");
     const base64 = parts[1];
     let imageType = "jpeg";
     if (imageSrc.includes("png")) imageType = "png";
     if (imageSrc.includes("webp")) imageType = "webp";
+
     setIsScanning(true);
     setResult(null);
     setError(null);
+
+    const token = localStorage.getItem("token");
     fetch("http://localhost:3000/api/faults/detect", {
       method: "POST",
       headers: {
@@ -196,6 +168,8 @@ export default function ARScannerView({ onBack, token }) {
 
   return (
     <div style={{ fontFamily: "monospace", background: "#0a0a0a", color: "#ccc", minHeight: "100vh", padding: 24 }}>
+
+      {/* Header */}
       <div style={{ borderBottom: "1px solid #222", paddingBottom: 12, marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <div style={{ fontSize: 18, fontWeight: "bold", color: "#00c8b4", letterSpacing: 3, textTransform: "uppercase" }}>
@@ -214,6 +188,8 @@ export default function ARScannerView({ onBack, token }) {
           ← Back to Dashboard
         </button>
       </div>
+
+      {/* Controls row */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: 12, marginBottom: 20, alignItems: "end" }}>
         <div>
           <div style={{ fontSize: 9, color: "#555", textTransform: "uppercase", letterSpacing: 2, marginBottom: 4 }}>
@@ -233,6 +209,7 @@ export default function ARScannerView({ onBack, token }) {
             <option value="wall">Wall / Structure</option>
           </select>
         </div>
+
         <div>
           <div style={{ fontSize: 9, color: "#555", textTransform: "uppercase", letterSpacing: 2, marginBottom: 4 }}>
             Image Source
@@ -249,6 +226,7 @@ export default function ARScannerView({ onBack, token }) {
           </button>
           <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleFileUpload} />
         </div>
+
         <div>
           <div style={{ fontSize: 9, color: "#555", textTransform: "uppercase", letterSpacing: 2, marginBottom: 4 }}>
             &nbsp;
@@ -269,6 +247,8 @@ export default function ARScannerView({ onBack, token }) {
           </button>
         </div>
       </div>
+
+      {/* Viewport */}
       <div style={{
         border: "1px solid #222", background: "#050505",
         minHeight: 400, display: "flex", alignItems: "center", justifyContent: "center",
@@ -282,6 +262,7 @@ export default function ARScannerView({ onBack, token }) {
         ].map((s, i) => (
           <div key={i} style={{ position: "absolute", width: 14, height: 14, ...s }} />
         ))}
+
         <div style={{
           position: "absolute", top: -1, left: "50%", transform: "translateX(-50%)",
           background: "#050505", padding: "2px 12px",
@@ -290,6 +271,7 @@ export default function ARScannerView({ onBack, token }) {
         }}>
           MAIN VIEWPORT
         </div>
+
         {imageSrc ? (
           <AROverlay imageSrc={imageSrc} faults={result?.faults || []} isScanning={isScanning} />
         ) : (
@@ -299,11 +281,15 @@ export default function ARScannerView({ onBack, token }) {
           </div>
         )}
       </div>
+
+      {/* Error */}
       {error && (
         <div style={{ border: "1px solid #ef4444", background: "#ef444411", color: "#ef4444", padding: "10px 16px", fontSize: 11, marginBottom: 16 }}>
           ERROR: {error}
         </div>
       )}
+
+      {/* Results */}
       {result && (
         <div style={{ border: "1px solid #222", background: "#0d0d0d", padding: 16, display: "grid", gridTemplateColumns: "200px 1fr", gap: 20 }}>
           <div style={{ borderRight: "1px solid #1a1a1a", paddingRight: 20, display: "flex", flexDirection: "column", gap: 16 }}>
@@ -319,13 +305,14 @@ export default function ARScannerView({ onBack, token }) {
             </div>
             <div style={{ fontSize: 9, color: "#333" }}>Scan ID: {result.scanId}</div>
           </div>
+
           <div>
             <div style={{ fontSize: 9, color: "#444", textTransform: "uppercase", letterSpacing: 2, marginBottom: 8, borderBottom: "1px solid #1a1a1a", paddingBottom: 6 }}>
               Analysis Summary
             </div>
             <p style={{ fontSize: 11, lineHeight: 1.7, color: "#aaa", marginBottom: 12 }}>{result.summary}</p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {(result.faults ?? []).map((f, i) => {
+              {result.faults.map((f, i) => {
                 const c = severityColor(f.severity);
                 return (
                   <div key={i} style={{

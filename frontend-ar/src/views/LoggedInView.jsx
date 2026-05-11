@@ -2,13 +2,11 @@ import FaultList from "../components/FaultList";
 import { useState, useEffect } from "react";
 import AnalyticsPanel from "./AnalyticsPanel";
 
-function LoggedInView({ faults, refreshFaults, logout, theme, toggleTheme, onOpenAR }) {
+function LoggedInView({ faults, refreshFaults, logout, theme, toggleTheme, onOpenAR, onOpenToolCheck }) {
+
   const [showReportForm, setShowReportForm] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedFault, setSelectedFault] = useState(null);
-
-  // Tab state from the database developer
-  const [activeTab, setActiveTab] = useState("faults");
 
   const [locations, setLocations] = useState([]);
   const [severity, setSeverity] = useState("");
@@ -41,8 +39,8 @@ function LoggedInView({ faults, refreshFaults, logout, theme, toggleTheme, onOpe
     try {
       const response = await fetch("http://localhost:3000/api/faults/report", {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
-        body: JSON.stringify({ location_id: parseInt(location_id), fault_type, severity, asset_class})
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ location_id: parseInt(location_id), fault_type, severity, asset_class })
       });
       if (!response.ok) {
         const error = await response.json();
@@ -51,10 +49,7 @@ function LoggedInView({ faults, refreshFaults, logout, theme, toggleTheme, onOpe
       }
       if (typeof refreshFaults === 'function') refreshFaults();
       setShowReportForm(false);
-      setLocation_id("");
-      setFault_type("");
-      setSeverity("");
-      setAsset_class("");
+      setLocation_id(""); setFault_type(""); setSeverity(""); setAsset_class("");
       alert("Fault reported successfully!");
     } catch (err) {
       console.error("Failed to submit fault:", err);
@@ -104,18 +99,42 @@ function LoggedInView({ faults, refreshFaults, logout, theme, toggleTheme, onOpe
 
   return (
     <div className="logged-in-container">
+
       <div className="dashboard-header">
-        <button className='theme-btn theme-toggle' onClick={toggleTheme}>
+
+        <button
+          className='theme-btn theme-toggle'
+          onClick={toggleTheme}
+          title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+          aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+        >
           Switch Theme
         </button>
+
         <div className="dashboard-titles">
           <p className="eyebrow">Civil Engineering AR Support</p>
           <h2>Fault Management Dashboard</h2>
-          <p className="intro">Review active infrastructure faults and submit new reports from the tunnel network.</p>
+          <p className="intro">
+            Review active infrastructure faults and submit new reports from the tunnel network.
+          </p>
         </div>
+
         <div className="dashboard-actions">
           <button className="logout" onClick={logout}>Log Out</button>
-          <button className="report-fault" onClick={() => setShowReportForm(true)}>Report New Fault</button>
+          <button
+            className="tool-check-btn"
+            onClick={onOpenToolCheck}
+            style={{
+              background: "#f59e0b", color: "#000", border: "none",
+              padding: "8px 16px", fontWeight: "bold", cursor: "pointer",
+              fontFamily: "inherit", fontSize: "inherit", marginRight: 8,
+            }}
+          >
+            🧰 Tool Check
+          </button>
+          <button className="report-fault" onClick={() => setShowReportForm(true)}>
+            Report New Fault
+          </button>
         </div>
       </div>
 
@@ -126,59 +145,32 @@ function LoggedInView({ faults, refreshFaults, logout, theme, toggleTheme, onOpe
         </div>
         <div className="stats-card">
           <span className="card-label">High / Critical</span>
-          <strong>{faults.filter((f) => f.severity === 'High' || f.severity === 'Critical').length}</strong>
+          <strong>{faults.filter(f => f.severity === 'High' || f.severity === 'Critical').length}</strong>
         </div>
         <div className="stats-card">
           <span className="card-label">Open status</span>
-          <strong>{faults.filter((f) => f.status === 'Open').length}</strong>
+          <strong>{faults.filter(f => f.status === 'Open').length}</strong>
         </div>
       </div>
 
-      {/* Tab Navigation from Developer */}
-      <div className="tab-bar" style={{ display: 'flex', gap: '10px', marginTop: '10px', marginBottom: '20px' }}>
-        <button
-          className={`tab-btn ${activeTab === 'faults' ? 'tab-active' : ''}`}
-          onClick={() => setActiveTab('faults')}
-          style={{ padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', background: activeTab === 'faults' ? 'var(--primary-blue)' : 'var(--comp-bg)', color: activeTab === 'faults' ? '#fff' : 'var(--text-main)', border: '1px solid var(--card-border)' }}
-        >
-          Faults
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'analytics' ? 'tab-active' : ''}`}
-          onClick={() => setActiveTab('analytics')}
-          style={{ padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', background: activeTab === 'analytics' ? 'var(--primary-blue)' : 'var(--comp-bg)', color: activeTab === 'analytics' ? '#fff' : 'var(--text-main)', border: '1px solid var(--card-border)' }}
-        >
-          Analytics
-        </button>
+      <div className="fault-panel">
+        <FaultList
+          faults={faults}
+          onSelectFault={(fault) => { setSelectedFault(fault); setShowViewModal(true); }}
+          onCompleteFault={(fault) => completeFault(fault.id)}
+          onDeleteFault={(fault) => deleteFault(fault.id)}
+        />
       </div>
 
-      {/* Dynamic Tab Content */}
-      {activeTab === 'faults' && (
-        <>
-          <div className="fault-panel">
-            <FaultList
-              faults={faults}
-              onSelectFault={(fault) => {
-                setSelectedFault(fault);
-                setShowViewModal(true);
-              }}
-              onCompleteFault={(fault) => completeFault(fault.id)}
-              onDeleteFault={(fault) => deleteFault(fault.id)}
-            />
-          </div>
-          <div className="dashboard-actions ar-button-row">
-            <button className="ar-button" onClick={onOpenAR}>
-              Open AR View
-            </button>
-          </div>
-        </>
-      )}
+      <div className="analytics-section">
+        <AnalyticsPanel />
+      </div>
 
-      {activeTab === 'analytics' && (
-        <div className="analytics-section">
-          <AnalyticsPanel />
-        </div>
-      )}
+      <div className="dashboard-actions ar-button-row">
+        <button className="ar-button" onClick={onOpenAR}>
+          Open AR View
+        </button>
+      </div>
 
       {/* Report Fault Modal */}
       {showReportForm && (
@@ -186,6 +178,7 @@ function LoggedInView({ faults, refreshFaults, logout, theme, toggleTheme, onOpe
           <div className="modal-box">
             <h3>Report New Fault</h3>
             <p className="modal-description">Capture the location, asset class, and severity for the issue.</p>
+
             <div className="modal-form-group">
               <label>Location</label>
               <select value={location_id} onChange={(e) => setLocation_id(e.target.value)}>
@@ -195,6 +188,7 @@ function LoggedInView({ faults, refreshFaults, logout, theme, toggleTheme, onOpe
                 ))}
               </select>
             </div>
+
             <div className="modal-form-group">
               <label>Fault Type</label>
               <input
@@ -203,26 +197,24 @@ function LoggedInView({ faults, refreshFaults, logout, theme, toggleTheme, onOpe
                 onChange={(e) => setFault_type(e.target.value)}
               />
             </div>
+
             <div className="modal-form-group split-grid">
               <div>
                 <label>Asset Class</label>
                 <select value={asset_class} onChange={(e) => setAsset_class(e.target.value)}>
                   <option value="" disabled>Select Asset Class</option>
-                  {ASSET_CLASSES.map((cls) => (
-                    <option key={cls} value={cls}>{cls}</option>
-                  ))}
+                  {ASSET_CLASSES.map((cls) => (<option key={cls} value={cls}>{cls}</option>))}
                 </select>
               </div>
               <div>
                 <label>Severity</label>
                 <select value={severity} onChange={(e) => setSeverity(e.target.value)}>
                   <option value="" disabled>Select Severity</option>
-                  {SEVERITY_LEVELS.map((sev) => (
-                    <option key={sev} value={sev}>{sev}</option>
-                  ))}
+                  {SEVERITY_LEVELS.map((sev) => (<option key={sev} value={sev}>{sev}</option>))}
                 </select>
               </div>
             </div>
+
             <div className="modal-actions">
               <button onClick={() => setShowReportForm(false)}>Cancel</button>
               <button onClick={() => handleSubmit()}>Submit</button>
@@ -237,20 +229,22 @@ function LoggedInView({ faults, refreshFaults, logout, theme, toggleTheme, onOpe
           <div className="modal-box view-modal">
             <h3>Fault Details</h3>
             <p className="modal-description">Review the selected fault and launch the AR experience if needed.</p>
+
             <div className="view-details-grid">
               <div><span className="view-label">Location</span><p>{selectedFault.location}</p></div>
               <div><span className="view-label">Type</span><p>{selectedFault.type}</p></div>
               <div><span className="view-label">Asset Class</span><p>{selectedFault.asset_class || 'Civil'}</p></div>
               <div><span className="view-label">Severity</span><p>{selectedFault.severity}</p></div>
               <div><span className="view-label">Status</span><p>{selectedFault.status}</p></div>
-              <div><span className="view-label">Detected</span><p>{selectedFault.detected_at ? selectedFault.detected_at.split(' ')[0] : 'N/A'}</p></div>
+              <div>
+                <span className="view-label">Detected</span>
+                <p>{selectedFault.detected_at ? selectedFault.detected_at.split(' ')[0] : 'N/A'}</p>
+              </div>
             </div>
+
             <div className="modal-actions">
               <button onClick={() => setShowViewModal(false)}>Close</button>
-              <button className="ar-button" onClick={() => {
-                  setShowViewModal(false);
-                  onOpenAR(); // Correctly routes to actual AR view
-                }}>
+              <button className="ar-button" onClick={() => { setShowViewModal(false); onOpenAR(); }}>
                 Open AR View
               </button>
             </div>

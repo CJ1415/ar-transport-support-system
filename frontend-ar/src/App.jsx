@@ -3,6 +3,7 @@ import './App.css'
 import LoggedOutView from "./views/LoggedOutView";
 import LoggedInView from "./views/LoggedInView";
 import ARScannerView from "./views/ARScannerView";
+import ToolCheckView from "./views/ToolCheckView";
 
 function App() {
 
@@ -23,7 +24,6 @@ function App() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
     });
-
     const data = await response.json();
     if (data.success) {
       const recievedToken = data.token;
@@ -39,14 +39,12 @@ function App() {
       const response = await fetch("http://localhost:3000/api/faults", {
         headers: { "Authorization": `Bearer ${token}` }
       });
-
       if (response.status === 401 || response.status === 400) {
         localStorage.removeItem("token");
         setToken(null);
         setFaults([]);
         return;
       }
-
       const data = await response.json();
       setFaults(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -56,9 +54,7 @@ function App() {
   };
 
   useEffect(() => {
-    if (token && token.length > 20) {
-      fetchFaults();
-    }
+    if (token && token.length > 20) fetchFaults();
   }, [token]);
 
   useEffect(() => {
@@ -96,10 +92,9 @@ function App() {
           toggleTheme={toggleTheme}
         />
       ) : activeView === "scanner" ? (
-        <ARScannerView
-          onBack={() => setActiveView("dashboard")}
-          token = {token}
-        />
+        <ARScannerView onBack={() => setActiveView("dashboard")} />
+      ) : activeView === "toolcheck" ? (
+        <ToolCheckView onBack={() => setActiveView("dashboard")} />
       ) : (
         <LoggedInView
           faults={faults}
@@ -108,6 +103,7 @@ function App() {
           theme={theme}
           toggleTheme={toggleTheme}
           onOpenAR={() => setActiveView("scanner")}
+          onOpenToolCheck={() => setActiveView("toolcheck")}
         />
       )}
     </div>
