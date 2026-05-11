@@ -4,10 +4,13 @@
 // and reinitialises with fixed values. Safe to run on a fresh or existing database.
 //
 // Fixed users:
-//   - admin       (role: Admin,      jurisdiction: ALL)
-//   - supervisor  (role: Supervisor, jurisdiction: ALL)
-//   - engineer    (role: Engineer,   jurisdiction: UK)
-//   - inspector   (role: Inspector,  jurisdiction: FR)
+//   - admin       (role: Admin,      jurisdiction: ALL) - password: admin123
+//   - supervisor  (role: Supervisor, jurisdiction: ALL) - password: super123
+//   - engineer    (role: Engineer,   jurisdiction: UK)  - password: eng123
+//   - inspector   (role: Inspector,  jurisdiction: FR)  - password: insp123
+//
+// Admin access is only granted to the `admin` user above.
+// Supervisors and other staff have non-admin roles and cannot complete or delete faults.
 //
 // Run order:
 //   1. node init.js   — creates tables and fixed data
@@ -16,6 +19,7 @@
 // Usage: node init.js
 
 const Database = require('better-sqlite3')
+const bcrypt = require('bcryptjs')
 const fs = require('fs')
 const db = new Database('ar_transport.db')
 
@@ -34,17 +38,19 @@ db.exec(`
     DELETE FROM users;
 `)
 
-function initUsers() {
+async function initUsers() {
     const fixedUsers = [
-        { username: 'admin',      password_hash: 'hashed_pw_admin',      role: 'Admin',      jurisdiction: 'ALL' },
-        { username: 'supervisor', password_hash: 'hashed_pw_supervisor', role: 'Supervisor', jurisdiction: 'ALL' },
-        { username: 'engineer',   password_hash: 'hashed_pw_engineer',   role: 'Engineer',   jurisdiction: 'UK'  },
-        { username: 'inspector',  password_hash: 'hashed_pw_inspector',  role: 'Inspector',  jurisdiction: 'FR'  },
+        { username: 'admin',      password: 'admin123',  role: 'Admin',      jurisdiction: 'ALL' },
+        { username: 'supervisor', password: 'super123',  role: 'Supervisor', jurisdiction: 'ALL' },
+        { username: 'engineer',   password: 'eng123',    role: 'Engineer',   jurisdiction: 'UK'  },
+        { username: 'inspector',  password: 'insp123',   role: 'Inspector',  jurisdiction: 'FR'  },
     ]
 
     const stmt = db.prepare('INSERT INTO users (username, password_hash, role, jurisdiction) VALUES (?, ?, ?, ?)')
+
     for (const u of fixedUsers) {
-        stmt.run(u.username, u.password_hash, u.role, u.jurisdiction)
+        const hashedPassword = await bcrypt.hash(u.password, 10)
+        stmt.run(u.username, hashedPassword, u.role, u.jurisdiction)
     }
 }
 
@@ -64,8 +70,12 @@ function initTools() {
     }
 }
 
-initUsers()
-initTools()
+async function main() {
+    await initUsers()
+    initTools()
 
-db.close()
-console.log('Database initialised with fixed users and tools')
+    db.close()
+    console.log('Database initialised with fixed users and tools')
+}
+
+main()

@@ -100,6 +100,10 @@ router.post('/report', async (req, res) => {
 
 router.patch('/:id', (req, res) => {
     try {
+        if (!['Admin', 'Engineer'].includes(req.user.role)) {
+            return res.status(403).json({ error: 'Admin or Engineer privileges required to update fault status' });
+        }
+
         const faultId = parseInt(req.params.id, 10);
         const { status } = req.body;
 
@@ -131,6 +135,10 @@ router.patch('/:id', (req, res) => {
 
 router.delete('/:id', (req, res) => {
     try {
+        if (req.user.role !== 'Admin') {
+            return res.status(403).json({ error: 'Admin privileges required' });
+        }
+
         const faultId = parseInt(req.params.id, 10);
         if (!faultId) {
             return res.status(400).json({ error: 'Fault id is required' });

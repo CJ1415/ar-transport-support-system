@@ -8,7 +8,7 @@ const severityColors = {
   None: "#9e9e9e"
 };
 
-function FaultItem({ fault, onSelect, onComplete, onDelete }) {
+function FaultItem({ fault, onSelect, onComplete, onDelete, canComplete, canDelete }) {
   return (
     <li className="fault-item">
       <div className="fault-card-header">
@@ -44,16 +44,20 @@ function FaultItem({ fault, onSelect, onComplete, onDelete }) {
 
       <div className="fault-card-footer">
         <ViewButton label="View" onClick={onSelect} />
-        <button
-          className="complete-button"
-          onClick={onComplete}
-          disabled={fault.status === 'Closed'}
-        >
-          {fault.status === 'Closed' ? 'Completed' : 'Complete'}
-        </button>
-        <button className="delete-button" onClick={onDelete}>
-          Delete
-        </button>
+        {canComplete && (
+          <button
+            className="complete-button"
+            onClick={onComplete}
+            disabled={fault.status === 'Closed'}
+          >
+            {fault.status === 'Closed' ? 'Completed' : 'Complete'}
+          </button>
+        )}
+        {canDelete && (
+          <button className="delete-button" onClick={onDelete}>
+            Delete
+          </button>
+        )}
       </div>
     </li>
   );
