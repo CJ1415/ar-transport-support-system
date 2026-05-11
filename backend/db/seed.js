@@ -1,46 +1,79 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 
-// TARGET: backend/db/ar_transport.db (Must match init.js)
 const dbPath = path.resolve(__dirname, 'ar_transport.db');
 const db = new Database(dbPath);
 
 const seed = () => {
   try {
-    const insertLocation = db.prepare(`
-      INSERT INTO locations (name, chainage_m, tunnel_section, zone_type)
-      VALUES (?, ?, ?, ?)
-    `);
+    // 1. Cleanup
+    db.prepare('DELETE FROM predictions').run();
+    db.prepare('DELETE FROM faults').run();
+    db.prepare(`DELETE FROM sessions`).run();
+    db.prepare(`DELETE FROM locations`).run();
 
-    const insertSession = db.prepare(`
-      INSERT INTO sessions (user_id, location_id, device_uid)
-      VALUES (?, ?, ?)
-    `);
-
-    const insertFault = db.prepare(`
-      INSERT INTO faults (session_id, location_id, fault_type, asset_class, severity, status, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `);
+    const insertLocation = db.prepare(`INSERT INTO locations (name, chainage_m, tunnel_section, zone_type) VALUES (?, ?, ?, ?)`);
+    const insertSession = db.prepare(`INSERT INTO sessions (user_id, location_id, device_uid) VALUES (?, ?, ?)`);
+    const insertFault = db.prepare(`INSERT INTO faults (session_id, location_id, fault_type, asset_class, severity, status, notes, detected_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+    const insertPrediction = db.prepare(`INSERT INTO predictions (fault_id, predicted_severity, confidence) VALUES (?, ?, ?)`);
 
     db.transaction(() => {
-      // 1. Seed Locations
-      insertLocation.run('North Portal Entrance', 0, 'Section A', 'Operational');
-      insertLocation.run('Mid-Tunnel Ventilation Shaft', 1250, 'Section B', 'Maintenance');
-      insertLocation.run('South Portal Exit', 2500, 'Section C', 'Operational');
+      const admin = db.prepare('SELECT id FROM users WHERE username = ?').get('admin');
+      if (!admin) throw new Error("Admin user not found. Run init.js first!");
 
-      // 2. Seed a dummy session (linking to Admin user ID 1)
-      insertSession.run(1, 1, 'DEV-HOLO-001');
+      // 2. Create standard locations
+      const locIds = [];
+      locIds.push(insertLocation.run('North Portal', 0, 'Section A', 'Operational').lastInsertRowid);
+      locIds.push(insertLocation.run('Vent Shaft 1', 500, 'Section A', 'Maintenance').lastInsertRowid);
+      locIds.push(insertLocation.run('Cross Passage 4', 1200, 'Section B', 'Operational').lastInsertRowid);
+      locIds.push(insertLocation.run('Signal Box South', 2200, 'Section C', 'Operational').lastInsertRowid);
+      locIds.push(insertLocation.run('Drainage Sump 2', 1800, 'Section B', 'Maintenance').lastInsertRowid);
 
-      // 3. Seed Sample Faults
-      insertFault.run(1, 1, 'Concrete Spalling', 'Civil', 'High', 'Open', 'Exposed reinforcement detected.');
-      insertFault.run(1, 2, 'Water Ingress', 'Civil', 'Critical', 'Open', 'Active leak near electrical panel.');
-      insertFault.run(1, 1, 'Loose Cable Tray', 'M&E', 'Medium', 'Open', 'Fixings show signs of corrosion.');
-      insertFault.run(1, 3, 'Damaged Signage', 'Signage', 'Low', 'Closed', 'Replaced during routine check.');
+      // 3. Create a session
+      const sessionId = insertSession.run(admin.id, locIds[0], 'DEV-HOLO-001').lastInsertRowid;
+
+      // 4. GENERATE 100+ FAULTS
+      const types = ['Concrete Crack', 'Water Ingress', 'Cable Corrosion', 'Signal Interference', 'Joint Failure', 'Loose Bolt'];
+      const assets = ['Civil', 'M&E', 'Track', 'Signage'];
+      const severities = ['Low', 'Medium', 'High', 'Critical'];
+      const statuses = ['Open', 'In progress', 'Closed'];
+
+      console.log("Generating 120 faults for ML datasets...");
+
+      for (let i = 0; i < 120; i++) {
+        const type = types[Math.floor(Math.random() * types.length)];
+        const asset = assets[Math.floor(Math.random() * assets.length)];
+        const sev = severities[Math.floor(Math.random() * severities.length)];
+        const stat = statuses[Math.floor(Math.random() * statuses.length)];
+        const loc = locIds[Math.floor(Math.random() * locIds.length)];
+
+        // Random date within the last 6 months
+        const date = new Date(Date.now() - Math.floor(Math.random() * 15552000000)).toISOString();
+
+        const faultResult = insertFault.run(
+          sessionId,
+          loc,
+          type,
+          asset,
+          sev,
+          stat,
+          `Automated inspection log entry #${i + 1000}`,
+          date
+        );
+
+        // 5. Add ML Predictions for half of the faults
+        if (i % 2 === 0) {
+          insertPrediction.run(
+            faultResult.lastInsertRowid,
+            severities[Math.floor(Math.random() * severities.length)],
+            (Math.random() * (0.99 - 0.7) + 0.7).toFixed(2) // 70-99% confidence
+          );
+        }
+      }
     })();
 
     console.log('-----------------------------------------');
-    console.log('Database Path:', dbPath);
-    console.log('Status: LOCATIONS & FAULTS SEEDED');
+    console.log('Status: 120 FAULTS & 60 ML PREDICTIONS SEEDED');
     console.log('-----------------------------------------');
   } catch (err) {
     console.error('Seeding failed:', err.message);
