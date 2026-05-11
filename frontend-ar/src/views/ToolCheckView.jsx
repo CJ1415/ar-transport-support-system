@@ -173,7 +173,9 @@ export default function ToolCheckView({ onBack }) {
     setResult(null);
     setError(null);
 
-    const token = localStorage.getItem("token");
+    // FIXED: Swapped localStorage.getItem to sessionStorage.getItem
+    const token = sessionStorage.getItem("token");
+
     fetch("http://localhost:3000/api/faults/toolcheck", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
@@ -326,7 +328,7 @@ export default function ToolCheckView({ onBack }) {
 
               <p style={{ fontSize: 11, lineHeight: 1.7, color: "#aaa", marginBottom: 16 }}>{result.summary}</p>
 
-              <div style={{ display: "grid", gridTemplateColumns: missing.length && misplaced.length ? "1fr 1fr" : "1fr", gap: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: (missing.length && misplaced.length) ? "1fr 1fr" : "1fr", gap: 16 }}>
                 {missing.length > 0 && (
                   <div style={{ border: "1px solid #ef444444", background: "#111", padding: 12 }}>
                     <div style={{ fontSize: 9, color: "#ef4444", textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>

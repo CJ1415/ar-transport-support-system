@@ -1,168 +1,52 @@
-// seed.js
-// Run this to populate the database with random test data for development.
-// Requires init.js to have been run first, as it pulls existing users and tools from the DB.
-// Safe to run multiple times — each run adds a fresh batch of locations, sessions,
-// faults, tool check logs, and audit logs.
-//
-// Usage: node seed.js
+const Database = require('better-sqlite3');
+const path = require('path');
 
-const Database = require('better-sqlite3')
-const db = new Database('ar_transport.db')
+// TARGET: backend/db/ar_transport.db (Must match init.js)
+const dbPath = path.resolve(__dirname, 'ar_transport.db');
+const db = new Database(dbPath);
 
-const tunnelSections = ['UK Land', 'UK Coastal', 'Subsea North', 'Subsea South', 'FR Coastal', 'FR Land']
-const zoneTypes = ['Running Tunnel', 'Service Tunnel', 'Cross-passage', 'Piston Relief Duct', 'Terminal']
-const locationNames = ['Shakespeare Cliff', 'Castle Hill', 'Sangatte', 'Coquelles', 'Folkestone Terminal', 'Calais Terminal', 'Undersea Section A', 'Undersea Section B']
+const seed = () => {
+  try {
+    const insertLocation = db.prepare(`
+      INSERT INTO locations (name, chainage_m, tunnel_section, zone_type)
+      VALUES (?, ?, ?, ?)
+    `);
 
-const endedTimes = [
-    '2026-05-01 09:30:00', '2026-05-02 11:45:00', '2026-05-03 14:20:00',
-    '2026-05-04 08:15:00', '2026-05-05 16:00:00', '2026-05-06 13:30:00', '2026-05-07 10:00:00'
-]
+    const insertSession = db.prepare(`
+      INSERT INTO sessions (user_id, location_id, device_uid)
+      VALUES (?, ?, ?)
+    `);
 
-// MERGED: Included 'Ventilation Fault' from your version
-const faultTypes = ['Crack', 'Drainage Blockage', 'Signage Damage', 'Electrical Fault', 'Rail Defect', 'Concrete Spalling', 'Ventilation Fault']
-const assetClasses = ['Civil', 'M&E', 'Track', 'Signage']
-const severities = ['Low', 'Medium', 'High', 'Critical']
-// MERGED: Included the extended audit log events from their version
-const eventTypes = ['LOGIN', 'LOGOUT', 'FAULT_CREATED', 'FAULT_COMPLETED', 'FAULT_DELETED', 'TOOL_CHECKOUT', 'SESSION_STARTED', 'SESSION_ENDED']
-const entityTypes = ['user', 'fault', 'session', 'tool']
-const actions = ['Check in', 'Check out']
+    const insertFault = db.prepare(`
+      INSERT INTO faults (session_id, location_id, fault_type, asset_class, severity, status, notes)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
 
-function pick(arr) {
-    return arr[Math.floor(Math.random() * arr.length)]
-}
+    db.transaction(() => {
+      // 1. Seed Locations
+      insertLocation.run('North Portal Entrance', 0, 'Section A', 'Operational');
+      insertLocation.run('Mid-Tunnel Ventilation Shaft', 1250, 'Section B', 'Maintenance');
+      insertLocation.run('South Portal Exit', 2500, 'Section C', 'Operational');
 
-// MERGED: Pulling roles for the Audit Log logic (Their version)
-const users = db.prepare('SELECT id, role FROM users').all()
-const userIds = users.map(r => r.id)
-const adminUserIds = users.filter((u) => u.role === 'Admin').map((u) => u.id)
-const toolIds = db.prepare('SELECT id FROM tools').all().map(r => r.id)
+      // 2. Seed a dummy session (linking to Admin user ID 1)
+      insertSession.run(1, 1, 'DEV-HOLO-001');
 
-// Ensure init.js has been run first
-if (userIds.length === 0 || toolIds.length === 0) {
-    console.error('No users or tools found — run init.js first')
-    db.close()
-    process.exit(1)
-}
+      // 3. Seed Sample Faults
+      insertFault.run(1, 1, 'Concrete Spalling', 'Civil', 'High', 'Open', 'Exposed reinforcement detected.');
+      insertFault.run(1, 2, 'Water Ingress', 'Civil', 'Critical', 'Open', 'Active leak near electrical panel.');
+      insertFault.run(1, 1, 'Loose Cable Tray', 'M&E', 'Medium', 'Open', 'Fixings show signs of corrosion.');
+      insertFault.run(1, 3, 'Damaged Signage', 'Signage', 'Low', 'Closed', 'Replaced during routine check.');
+    })();
 
-if (adminUserIds.length === 0) {
-    console.error('No admin users found — ensure init.js seeded an Admin user')
-    db.close()
-    process.exit(1)
-}
+    console.log('-----------------------------------------');
+    console.log('Database Path:', dbPath);
+    console.log('Status: LOCATIONS & FAULTS SEEDED');
+    console.log('-----------------------------------------');
+  } catch (err) {
+    console.error('Seeding failed:', err.message);
+  } finally {
+    db.close();
+  }
+};
 
-function seedLocations() {
-    const locationIds = []
-    const stmt = db.prepare('INSERT INTO locations (name, chainage_m, tunnel_section, zone_type) VALUES (?, ?, ?, ?)')
-    for (let i = 0; i < 5; i++) {
-        const result = stmt.run(pick(locationNames), Math.floor(Math.random() * 50000), pick(tunnelSections), pick(zoneTypes))
-        locationIds.push(result.lastInsertRowid)
-    }
-    return locationIds
-}
-
-function seedSessions(userIds, locationIds) {
-    const sessionIds = []
-    const stmt = db.prepare('INSERT INTO sessions (user_id, location_id, device_uid, ended_at) VALUES (?, ?, ?, ?)')
-    for (let i = 0; i < 10; i++) {
-        const deviceUid = 'DEV-' + String(i + 1).padStart(4, '0')
-        const endedAt = i < 7 ? pick(endedTimes) : null
-        const result = stmt.run(pick(userIds), pick(locationIds), deviceUid, endedAt)
-        sessionIds.push(result.lastInsertRowid)
-    }
-    return sessionIds
-}
-
-// MERGED: Kept your brilliant ML-weighted fault generation logic (Your version)
-function seedFaults(sessionIds, locationIds) {
-    const stmt = db.prepare('INSERT INTO faults (session_id, location_id, fault_type, asset_class, severity, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?)')
-
-    // Weighted severity based on fault type and tunnel section
-    function pickSeverity(faultType, tunnelSection) {
-        const isSubsea = tunnelSection.includes('Subsea')
-        const isCoastal = tunnelSection.includes('Coastal')
-
-        const weights = {
-            'Ventilation Fault':  isSubsea  ? ['Critical', 'Critical', 'Critical', 'Critical', 'Critical', 'Critical', 'Critical', 'Critical', 'High', 'High']
-                                            : isCoastal ? ['Critical', 'Critical', 'Critical', 'High', 'High', 'High', 'High', 'Medium', 'Medium', 'Low']
-                                            :             ['Critical', 'Critical', 'High', 'High', 'High', 'High', 'Medium', 'Medium', 'Medium', 'Low'],
-            'Rail Defect':        isSubsea  ? ['Critical', 'Critical', 'Critical', 'Critical', 'High', 'High', 'High', 'High', 'Medium', 'Low']
-                                            :             ['Critical', 'Critical', 'High', 'High', 'High', 'High', 'Medium', 'Medium', 'Medium', 'Low'],
-            'Crack':              isSubsea  ? ['Critical', 'Critical', 'Critical', 'High', 'High', 'High', 'Medium', 'Medium', 'Low', 'Low']
-                                            :             ['Critical', 'High', 'High', 'High', 'Medium', 'Medium', 'Medium', 'Low', 'Low', 'Low'],
-            'Concrete Spalling':  isSubsea  ? ['Critical', 'Critical', 'High', 'High', 'High', 'High', 'Medium', 'Medium', 'Low', 'Low']
-                                            :             ['Critical', 'High', 'High', 'High', 'Medium', 'Medium', 'Medium', 'Low', 'Low', 'Low'],
-            'Electrical Fault':   ['Critical', 'Critical', 'High', 'High', 'High', 'Medium', 'Medium', 'Medium', 'Low', 'Low'],
-            'Drainage Blockage':  isSubsea  ? ['Critical', 'High', 'High', 'High', 'Medium', 'Medium', 'Medium', 'Low', 'Low', 'Low']
-                                            :             ['High', 'Medium', 'Medium', 'Medium', 'Low', 'Low', 'Low', 'Low', 'Low', 'Low'],
-            'Signage Damage':     ['High', 'Medium', 'Medium', 'Low', 'Low', 'Low', 'Low', 'Low', 'Low', 'Low'],
-        }
-
-        const options = weights[faultType] || ['Low', 'Medium', 'High', 'Critical']
-        return pick(options)
-    }
-
-    // Asset class based on fault type
-    function pickAssetClass(faultType) {
-        const map = {
-            'Crack':             'Civil',
-            'Concrete Spalling': 'Civil',
-            'Drainage Blockage': 'Civil',
-            'Rail Defect':       'Track',
-            'Electrical Fault':  'M&E',
-            'Ventilation Fault': 'M&E',
-            'Signage Damage':    'Signage',
-        }
-        return map[faultType] || pick(assetClasses)
-    }
-
-    // Mainly resolved/closed historical faults — used for ML training data
-    for (let i = 0; i < 160; i++) {
-        const faultType = pick(faultTypes)
-        const locationId = pick(locationIds)
-
-        const location = db.prepare('SELECT tunnel_section FROM locations WHERE id = ?').get(locationId)
-        const severity = pickSeverity(faultType, location.tunnel_section)
-        const assetClass = pickAssetClass(faultType)
-
-        stmt.run(pick(sessionIds), locationId, faultType, assetClass, severity, pick(['Resolved', 'Closed']), 'Historical fault record ' + (i + 1))
-    }
-
-    // Active faults — current open issues
-    for (let i = 0; i < 40; i++) {
-        const faultType = pick(faultTypes)
-        const locationId = pick(locationIds)
-
-        const location = db.prepare('SELECT tunnel_section FROM locations WHERE id = ?').get(locationId)
-        const severity = pickSeverity(faultType, location.tunnel_section)
-        const assetClass = pickAssetClass(faultType)
-
-        stmt.run(pick(sessionIds), locationId, faultType, assetClass, severity, pick(['Open', 'In progress']), 'Active fault record ' + (i + 1))
-    }
-}
-
-function seedToolCheckLogs(toolIds, sessionIds) {
-    const stmt = db.prepare('INSERT INTO tool_check_logs (tool_id, session_id, action) VALUES (?, ?, ?)')
-    for (let i = 0; i < 20; i++) {
-        stmt.run(pick(toolIds), pick(sessionIds), pick(actions))
-    }
-}
-
-// MERGED: Kept their Admin-only logic for completing/deleting faults in logs (Their version)
-function seedAuditLogs(userIds) {
-    const stmt = db.prepare('INSERT INTO audit_logs (user_id, event_type, entity_type, entity_id) VALUES (?, ?, ?, ?)')
-    for (let i = 0; i < 20; i++) {
-        const eventType = pick(eventTypes)
-        // If the event is completing or deleting a fault, guarantee it's an Admin
-        const userPool = ['FAULT_COMPLETED', 'FAULT_DELETED'].includes(eventType) ? adminUserIds : userIds
-        stmt.run(pick(userPool), eventType, pick(entityTypes), Math.floor(Math.random() * 10) + 1)
-    }
-}
-
-const locationIds = seedLocations()
-const sessionIds = seedSessions(userIds, locationIds)
-seedFaults(sessionIds, locationIds)
-seedToolCheckLogs(toolIds, sessionIds)
-seedAuditLogs(userIds)
-
-db.close()
-console.log('Database seeded with random test data')
+seed();

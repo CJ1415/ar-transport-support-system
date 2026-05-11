@@ -3,11 +3,21 @@ import { useState, useEffect } from "react";
 import AnalyticsPanel from "./AnalyticsPanel";
 
 function LoggedInView({ faults, refreshFaults, logout, role, theme, toggleTheme, onOpenAR, onOpenToolCheck }) {
-  // Role-based permissions from server branch
-  const isAdmin = role === 'Admin';
-  const canCompleteFault = role === 'Admin' || role === 'Engineer';
-  const canDeleteFault = role === 'Admin';
 
+  // ── FIXED PERMISSIONS ──────────────────────────────────────────────────────
+  // Convert role to lowercase so it doesn't matter if it's "Admin" or "admin"
+  const normalizedRole = role ? role.toLowerCase() : "";
+
+  const isAdmin = normalizedRole === 'admin';
+  const isEngineer = normalizedRole === 'engineer';
+  const isSupervisor = normalizedRole === 'supervisor';
+
+  // Permissions mapping
+  const canCompleteFault = isAdmin || isEngineer || isSupervisor;
+  const canDeleteFault = isAdmin;
+  // ──────────────────────────────────────────────────────────────────────────
+
+  const [activeTab, setActiveTab] = useState("faults");
   const [showReportForm, setShowReportForm] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedFault, setSelectedFault] = useState(null);
@@ -101,7 +111,6 @@ function LoggedInView({ faults, refreshFaults, logout, role, theme, toggleTheme,
     }
   };
 
-  // Split faults based on status for the new UI sections
   const uncompletedFaults = faults.filter((fault) => fault.status !== 'Closed');
   const completedFaults = faults.filter((fault) => fault.status === 'Closed');
 
@@ -113,7 +122,6 @@ function LoggedInView({ faults, refreshFaults, logout, role, theme, toggleTheme,
           className='theme-btn theme-toggle'
           onClick={toggleTheme}
           title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-          aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
         >
           Switch Theme
         </button>
@@ -128,7 +136,6 @@ function LoggedInView({ faults, refreshFaults, logout, role, theme, toggleTheme,
 
         <div className="dashboard-actions">
           <button className="logout" onClick={logout}>Log Out</button>
-
           <button
             className="tool-check-btn"
             onClick={onOpenToolCheck}
@@ -140,7 +147,6 @@ function LoggedInView({ faults, refreshFaults, logout, role, theme, toggleTheme,
           >
             🧰 Tool Check
           </button>
-
           <button className="report-fault" onClick={() => setShowReportForm(true)}>
             Report New Fault
           </button>
@@ -162,53 +168,83 @@ function LoggedInView({ faults, refreshFaults, logout, role, theme, toggleTheme,
         </div>
       </div>
 
-      <div className="fault-sections">
-        {/* Open & In Progress Faults */}
-        <section className="fault-section">
-          <div className="section-heading">
-            <h3>Open & In-Progress Faults</h3>
-            <span>{uncompletedFaults.length} items</span>
-          </div>
-          <FaultList
-            faults={uncompletedFaults}
-            onSelectFault={(fault) => {
-              setSelectedFault(fault);
-              setShowViewModal(true);
-            }}
-            onCompleteFault={canCompleteFault ? (fault) => completeFault(fault.id) : null}
-            onDeleteFault={canDeleteFault ? (fault) => deleteFault(fault.id) : null}
-          />
-        </section>
-
-        {/* Completed Faults */}
-        <section className="fault-section completed">
-          <div className="section-heading">
-            <h3>Completed Faults</h3>
-            <span>{completedFaults.length} items</span>
-          </div>
-          <FaultList
-            faults={completedFaults}
-            onSelectFault={(fault) => {
-              setSelectedFault(fault);
-              setShowViewModal(true);
-            }}
-            onCompleteFault={null}
-            onDeleteFault={canDeleteFault ? (fault) => deleteFault(fault.id) : null}
-          />
-        </section>
-      </div>
-
-      <div className="analytics-section">
-        <AnalyticsPanel />
-      </div>
-
-      <div className="dashboard-actions ar-button-row">
-        <button className="ar-button" onClick={onOpenAR}>
-          Open AR View
+      {/* Tab Navigation */}
+      <div className="tab-bar" style={{ display: 'flex', gap: '10px', marginTop: '10px', marginBottom: '20px' }}>
+        <button
+          className={`tab-btn ${activeTab === 'faults' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('faults')}
+          style={{ padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', background: activeTab === 'faults' ? 'var(--primary-blue)' : 'var(--comp-bg)', color: activeTab === 'faults' ? '#fff' : 'var(--text-main)', border: '1px solid var(--card-border)' }}
+        >
+          Faults
         </button>
+        {/* Updated Tab check to match normalizedRole */}
+        {(isAdmin || isSupervisor) && (
+          <button
+            className={`tab-btn ${activeTab === 'analytics' ? 'tab-active' : ''}`}
+            onClick={() => setActiveTab('analytics')}
+            style={{ padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', background: activeTab === 'analytics' ? 'var(--primary-blue)' : 'var(--comp-bg)', color: activeTab === 'analytics' ? '#fff' : 'var(--text-main)', border: '1px solid var(--card-border)' }}
+          >
+            Analytics & ML Predictions
+          </button>
+        )}
       </div>
 
-      {/* Report Fault Modal */}
+      {/* Tab Content: Faults */}
+      {activeTab === 'faults' && (
+        <>
+          <div className="fault-sections">
+            <section className="fault-section">
+              <div className="section-heading">
+                <h3>Open & In-Progress Faults</h3>
+                <span>{uncompletedFaults.length} items</span>
+              </div>
+              <FaultList
+                faults={uncompletedFaults}
+                onSelectFault={(fault) => {
+                  setSelectedFault(fault);
+                  setShowViewModal(true);
+                }}
+                onCompleteFault={canCompleteFault ? (fault) => completeFault(fault.id) : null}
+                onDeleteFault={canDeleteFault ? (fault) => deleteFault(fault.id) : null}
+                canComplete={canCompleteFault}
+                canDelete={canDeleteFault}
+              />
+            </section>
+
+            <section className="fault-section completed">
+              <div className="section-heading">
+                <h3>Completed Faults</h3>
+                <span>{completedFaults.length} items</span>
+              </div>
+              <FaultList
+                faults={completedFaults}
+                onSelectFault={(fault) => {
+                  setSelectedFault(fault);
+                  setShowViewModal(true);
+                }}
+                onCompleteFault={null}
+                onDeleteFault={canDeleteFault ? (fault) => deleteFault(fault.id) : null}
+                canComplete={false}
+                canDelete={canDeleteFault}
+              />
+            </section>
+          </div>
+          <div className="dashboard-actions ar-button-row">
+            <button className="ar-button" onClick={onOpenAR}>
+              Open AR View
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* Tab Content: Analytics */}
+      {activeTab === 'analytics' && (
+        <div className="analytics-section">
+          <AnalyticsPanel />
+        </div>
+      )}
+
+      {/* Report Fault Modal (Remains the same) */}
       {showReportForm && (
         <div className="modal-overlay">
           <div className="modal-box">
@@ -259,7 +295,7 @@ function LoggedInView({ faults, refreshFaults, logout, role, theme, toggleTheme,
         </div>
       )}
 
-      {/* View Fault Modal */}
+      {/* View Fault Modal (Remains the same) */}
       {showViewModal && selectedFault && (
         <div className="modal-overlay">
           <div className="modal-box view-modal">

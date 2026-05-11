@@ -17,7 +17,8 @@ function AnalyticsPanel() {
     const [mlData, setMlData] = useState([]);
 
     useEffect(() => {
-        const token = localStorage.getItem("token");
+        // FIXED: Swapped localStorage to sessionStorage to match the new security updates
+        const token = sessionStorage.getItem("token");
 
         const fetchSeverityBreakdown = async () => {
             try {
