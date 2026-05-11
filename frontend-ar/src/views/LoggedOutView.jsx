@@ -10,14 +10,24 @@ function LoggedOutView({
 }) {
   return (
     <div className="login-shell">
+      {/* MERGED: Keeping the 'shake' animation logic on failed login attempts */}
       <div key={attempts} className={`login-card${attempts > 0 ? ' shake' : ''}`}>
-        <button className='theme-btn theme-toggle' onClick={toggleTheme} title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`} aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}>
+
+        <button
+          className='theme-btn theme-toggle'
+          onClick={toggleTheme}
+          title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+          aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+        >
           Switch Theme
         </button>
+
         <div className="login-brand">
           <span className="brand-tag">AR HUB</span>
           <h2>Tunnel Inspection Console</h2>
-          <p className="brand-copy">Secure access to fault reporting, network status, and civil infrastructure monitoring.</p>
+          <p className="brand-copy">
+            Secure access to fault reporting, network status, and civil infrastructure monitoring.
+          </p>
         </div>
 
         <form
@@ -50,6 +60,7 @@ function LoggedOutView({
           <button className="login" type="submit">
             Log In
           </button>
+
         </form>
       </div>
     </div>

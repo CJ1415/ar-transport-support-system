@@ -1,18 +1,27 @@
-import { useEffect, useState } from 'react'
-import './App.css'
+import { useEffect, useState } from 'react';
+import './App.css';
 import LoggedOutView from "./views/LoggedOutView";
 import LoggedInView from "./views/LoggedInView";
 import ARScannerView from "./views/ARScannerView";
 import ToolCheckView from "./views/ToolCheckView";
 
 function App() {
-
   const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("admin123");
-  const [token, setToken] = useState(localStorage.getItem("token"));
+
+  // MERGED: Using sessionStorage and userRole from the DB branch
+  const [token, setToken] = useState(() => {
+    const saved = sessionStorage.getItem("token");
+    return (saved && saved !== "undefined" && saved !== "null") ? saved : null;
+  });
+  const [userRole, setUserRole] = useState(() => sessionStorage.getItem("userRole") || null);
+
   const [faults, setFaults] = useState([]);
   const [attempts, setLoginAttempts] = useState(0);
+
+  // MERGED: Keeping activeView for AR/ToolCheck routing
   const [activeView, setActiveView] = useState("dashboard");
+
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem("theme");
     return savedTheme === "light" || savedTheme === "dark" ? savedTheme : "dark";
@@ -25,28 +34,44 @@ function App() {
       body: JSON.stringify({ username, password }),
     });
     const data = await response.json();
+
     if (data.success) {
       const recievedToken = data.token;
-      localStorage.setItem("token", recievedToken);
+      // MERGED: Saving to sessionStorage as requested by DB branch
+      sessionStorage.setItem("token", recievedToken);
+      sessionStorage.setItem("userRole", data.role || "");
       setToken(recievedToken);
+      setUserRole(data.role || null);
     } else {
       setLoginAttempts(attempts + 1);
     }
   }
 
   const fetchFaults = async () => {
+    // MERGED: Skip fetch if token looks broken
+    if (!token || token === "null" || token === "undefined") {
+      return;
+    }
+
     try {
       const response = await fetch("http://localhost:3000/api/faults", {
         headers: { "Authorization": `Bearer ${token}` }
       });
+
       if (response.status === 401 || response.status === 400) {
-        localStorage.removeItem("token");
+        sessionStorage.removeItem("token");
         setToken(null);
         setFaults([]);
         return;
       }
+
       const data = await response.json();
-      setFaults(Array.isArray(data) ? data : []);
+
+      if (Array.isArray(data)) {
+        setFaults(data);
+      } else {
+        setFaults([]);
+      }
     } catch (err) {
       console.error("Fetch failed:", err);
       setFaults([]);
@@ -72,9 +97,15 @@ function App() {
     });
   };
 
+  // MERGED: Comprehensive logout that clears all state and storage
   const handleLogout = () => {
-    localStorage.clear();
+    setUsername("");
+    setPassword("");
+    sessionStorage.clear();
     setToken(null);
+    setUserRole(null);
+    setLoginAttempts(0);
+    setFaults([]);
     setActiveView("dashboard");
   };
 
@@ -100,6 +131,7 @@ function App() {
           faults={faults}
           refreshFaults={fetchFaults}
           logout={handleLogout}
+          role={userRole}
           theme={theme}
           toggleTheme={toggleTheme}
           onOpenAR={() => setActiveView("scanner")}

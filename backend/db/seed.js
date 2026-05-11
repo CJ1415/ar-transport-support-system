@@ -18,10 +18,12 @@ const endedTimes = [
     '2026-05-04 08:15:00', '2026-05-05 16:00:00', '2026-05-06 13:30:00', '2026-05-07 10:00:00'
 ]
 
+// MERGED: Included 'Ventilation Fault' from your version
 const faultTypes = ['Crack', 'Drainage Blockage', 'Signage Damage', 'Electrical Fault', 'Rail Defect', 'Concrete Spalling', 'Ventilation Fault']
 const assetClasses = ['Civil', 'M&E', 'Track', 'Signage']
 const severities = ['Low', 'Medium', 'High', 'Critical']
-const eventTypes = ['LOGIN', 'LOGOUT', 'FAULT_CREATED', 'TOOL_CHECKOUT', 'SESSION_STARTED', 'SESSION_ENDED']
+// MERGED: Included the extended audit log events from their version
+const eventTypes = ['LOGIN', 'LOGOUT', 'FAULT_CREATED', 'FAULT_COMPLETED', 'FAULT_DELETED', 'TOOL_CHECKOUT', 'SESSION_STARTED', 'SESSION_ENDED']
 const entityTypes = ['user', 'fault', 'session', 'tool']
 const actions = ['Check in', 'Check out']
 
@@ -29,13 +31,21 @@ function pick(arr) {
     return arr[Math.floor(Math.random() * arr.length)]
 }
 
-// Pull fixed users and tools from DB
-const userIds = db.prepare('SELECT id FROM users').all().map(r => r.id)
+// MERGED: Pulling roles for the Audit Log logic (Their version)
+const users = db.prepare('SELECT id, role FROM users').all()
+const userIds = users.map(r => r.id)
+const adminUserIds = users.filter((u) => u.role === 'Admin').map((u) => u.id)
 const toolIds = db.prepare('SELECT id FROM tools').all().map(r => r.id)
 
 // Ensure init.js has been run first
 if (userIds.length === 0 || toolIds.length === 0) {
     console.error('No users or tools found — run init.js first')
+    db.close()
+    process.exit(1)
+}
+
+if (adminUserIds.length === 0) {
+    console.error('No admin users found — ensure init.js seeded an Admin user')
     db.close()
     process.exit(1)
 }
@@ -62,36 +72,30 @@ function seedSessions(userIds, locationIds) {
     return sessionIds
 }
 
-    function seedFaults(sessionIds, locationIds) {
-        const stmt = db.prepare('INSERT INTO faults (session_id, location_id, fault_type, asset_class, severity, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?)')
+// MERGED: Kept your brilliant ML-weighted fault generation logic (Your version)
+function seedFaults(sessionIds, locationIds) {
+    const stmt = db.prepare('INSERT INTO faults (session_id, location_id, fault_type, asset_class, severity, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?)')
 
-        // Weighted severity based on fault type and tunnel section
-        // Reflects real-world maintenance risk profiles for the Channel Tunnel
-        function pickSeverity(faultType, tunnelSection) {
-            const isSubsea = tunnelSection.includes('Subsea')
-            const isCoastal = tunnelSection.includes('Coastal')
+    // Weighted severity based on fault type and tunnel section
+    function pickSeverity(faultType, tunnelSection) {
+        const isSubsea = tunnelSection.includes('Subsea')
+        const isCoastal = tunnelSection.includes('Coastal')
 
-            const weights = {
-        'Ventilation Fault':  isSubsea  ? ['Critical', 'Critical', 'Critical', 'Critical', 'Critical', 'Critical', 'Critical', 'Critical', 'High', 'High']
-                            : isCoastal ? ['Critical', 'Critical', 'Critical', 'High', 'High', 'High', 'High', 'Medium', 'Medium', 'Low']
-                            :             ['Critical', 'Critical', 'High', 'High', 'High', 'High', 'Medium', 'Medium', 'Medium', 'Low'],
-
-        'Rail Defect':        isSubsea  ? ['Critical', 'Critical', 'Critical', 'Critical', 'High', 'High', 'High', 'High', 'Medium', 'Low']
-                            :             ['Critical', 'Critical', 'High', 'High', 'High', 'High', 'Medium', 'Medium', 'Medium', 'Low'],
-
-        'Crack':              isSubsea  ? ['Critical', 'Critical', 'Critical', 'High', 'High', 'High', 'Medium', 'Medium', 'Low', 'Low']
-                            :             ['Critical', 'High', 'High', 'High', 'Medium', 'Medium', 'Medium', 'Low', 'Low', 'Low'],
-
-        'Concrete Spalling':  isSubsea  ? ['Critical', 'Critical', 'High', 'High', 'High', 'High', 'Medium', 'Medium', 'Low', 'Low']
-                            :             ['Critical', 'High', 'High', 'High', 'Medium', 'Medium', 'Medium', 'Low', 'Low', 'Low'],
-
-        'Electrical Fault':   ['Critical', 'Critical', 'High', 'High', 'High', 'Medium', 'Medium', 'Medium', 'Low', 'Low'],
-
-        'Drainage Blockage':  isSubsea  ? ['Critical', 'High', 'High', 'High', 'Medium', 'Medium', 'Medium', 'Low', 'Low', 'Low']
-                            :             ['High', 'Medium', 'Medium', 'Medium', 'Low', 'Low', 'Low', 'Low', 'Low', 'Low'],
-
-        'Signage Damage':     ['High', 'Medium', 'Medium', 'Low', 'Low', 'Low', 'Low', 'Low', 'Low', 'Low'],
-    }
+        const weights = {
+            'Ventilation Fault':  isSubsea  ? ['Critical', 'Critical', 'Critical', 'Critical', 'Critical', 'Critical', 'Critical', 'Critical', 'High', 'High']
+                                            : isCoastal ? ['Critical', 'Critical', 'Critical', 'High', 'High', 'High', 'High', 'Medium', 'Medium', 'Low']
+                                            :             ['Critical', 'Critical', 'High', 'High', 'High', 'High', 'Medium', 'Medium', 'Medium', 'Low'],
+            'Rail Defect':        isSubsea  ? ['Critical', 'Critical', 'Critical', 'Critical', 'High', 'High', 'High', 'High', 'Medium', 'Low']
+                                            :             ['Critical', 'Critical', 'High', 'High', 'High', 'High', 'Medium', 'Medium', 'Medium', 'Low'],
+            'Crack':              isSubsea  ? ['Critical', 'Critical', 'Critical', 'High', 'High', 'High', 'Medium', 'Medium', 'Low', 'Low']
+                                            :             ['Critical', 'High', 'High', 'High', 'Medium', 'Medium', 'Medium', 'Low', 'Low', 'Low'],
+            'Concrete Spalling':  isSubsea  ? ['Critical', 'Critical', 'High', 'High', 'High', 'High', 'Medium', 'Medium', 'Low', 'Low']
+                                            :             ['Critical', 'High', 'High', 'High', 'Medium', 'Medium', 'Medium', 'Low', 'Low', 'Low'],
+            'Electrical Fault':   ['Critical', 'Critical', 'High', 'High', 'High', 'Medium', 'Medium', 'Medium', 'Low', 'Low'],
+            'Drainage Blockage':  isSubsea  ? ['Critical', 'High', 'High', 'High', 'Medium', 'Medium', 'Medium', 'Low', 'Low', 'Low']
+                                            :             ['High', 'Medium', 'Medium', 'Medium', 'Low', 'Low', 'Low', 'Low', 'Low', 'Low'],
+            'Signage Damage':     ['High', 'Medium', 'Medium', 'Low', 'Low', 'Low', 'Low', 'Low', 'Low', 'Low'],
+        }
 
         const options = weights[faultType] || ['Low', 'Medium', 'High', 'Critical']
         return pick(options)
@@ -116,12 +120,10 @@ function seedSessions(userIds, locationIds) {
         const faultType = pick(faultTypes)
         const locationId = pick(locationIds)
 
-        // Get tunnel section for this location to inform severity
         const location = db.prepare('SELECT tunnel_section FROM locations WHERE id = ?').get(locationId)
         const severity = pickSeverity(faultType, location.tunnel_section)
         const assetClass = pickAssetClass(faultType)
 
-        // Historical
         stmt.run(pick(sessionIds), locationId, faultType, assetClass, severity, pick(['Resolved', 'Closed']), 'Historical fault record ' + (i + 1))
     }
 
@@ -145,10 +147,14 @@ function seedToolCheckLogs(toolIds, sessionIds) {
     }
 }
 
+// MERGED: Kept their Admin-only logic for completing/deleting faults in logs (Their version)
 function seedAuditLogs(userIds) {
     const stmt = db.prepare('INSERT INTO audit_logs (user_id, event_type, entity_type, entity_id) VALUES (?, ?, ?, ?)')
     for (let i = 0; i < 20; i++) {
-        stmt.run(pick(userIds), pick(eventTypes), pick(entityTypes), Math.floor(Math.random() * 10) + 1)
+        const eventType = pick(eventTypes)
+        // If the event is completing or deleting a fault, guarantee it's an Admin
+        const userPool = ['FAULT_COMPLETED', 'FAULT_DELETED'].includes(eventType) ? adminUserIds : userIds
+        stmt.run(pick(userPool), eventType, pick(entityTypes), Math.floor(Math.random() * 10) + 1)
     }
 }
 
